@@ -40,7 +40,6 @@ const adminItems = [
 const userItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'My Files', url: '/files', icon: Files },
-  { title: 'Shared', url: '/shared', icon: Users },
 ];
 
 export function AppSidebar() {

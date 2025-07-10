@@ -42,28 +42,28 @@ const UserDashboard: React.FC = () => {
 
   const recentFiles = [
     {
-      name: 'Project Proposal.pdf',
+      name: 'Lagos_Business_Proposal.pdf',
       type: 'pdf',
       size: '2.4 MB',
       modified: '2 hours ago',
       shared: true
     },
     {
-      name: 'Team Photo.jpg',
+      name: 'Abuja_Conference_Photo.jpg',
       type: 'image',
       size: '1.8 MB',
       modified: '5 hours ago',
       shared: false
     },
     {
-      name: 'Meeting Notes.docx',
+      name: 'Kano_Meeting_Notes.docx',
       type: 'document',
       size: '156 KB',
       modified: '1 day ago',
       shared: true
     },
     {
-      name: 'Presentation.mp4',
+      name: 'Port_Harcourt_Presentation.mp4',
       type: 'video',
       size: '45 MB',
       modified: '2 days ago',

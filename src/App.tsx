@@ -13,7 +13,7 @@ import AdminPermissions from "./pages/admin/AdminPermissions";
 import AdminTrash from "./pages/admin/AdminTrash";
 import UserDashboard from "./pages/user/UserDashboard";
 import UserFiles from "./pages/user/UserFiles";
-import SharedFiles from "./pages/user/SharedFiles";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,11 +50,6 @@ const AppRoutes = () => {
       <Route path="/files" element={
         <ProtectedRoute>
           <UserFiles />
-        </ProtectedRoute>
-      } />
-      <Route path="/shared" element={
-        <ProtectedRoute>
-          <SharedFiles />
         </ProtectedRoute>
       } />
       

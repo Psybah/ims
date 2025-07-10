@@ -31,24 +31,24 @@ export const useAuth = () => {
 const mockUsers: User[] = [
   {
     id: '1',
-    name: 'Admin User',
+    name: 'Adebayo Okonkwo',
     email: 'admin@filemanagement.com',
     role: 'admin',
-    avatar: 'AU'
+    avatar: 'AO'
   },
   {
     id: '2',
-    name: 'John Doe',
-    email: 'john@company.com',
+    name: 'Chinedu Emeka',
+    email: 'chinedu@company.com',
     role: 'user',
-    avatar: 'JD'
+    avatar: 'CE'
   },
   {
     id: '3',
-    name: 'Sarah Wilson',
-    email: 'sarah@company.com',
+    name: 'Amina Yusuf',
+    email: 'amina@company.com',
     role: 'user',
-    avatar: 'SW'
+    avatar: 'AY'
   }
 ];
 

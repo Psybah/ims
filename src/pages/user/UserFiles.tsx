@@ -1,16 +1,7 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,189 +9,465 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Files,
   Upload,
   Search,
   Download,
   Share2,
   MoreVertical,
   FolderPlus,
-  Filter
+  Filter,
+  Folder,
+  FileText,
+  Image,
+  FileSpreadsheet,
+  Presentation,
+  File,
+  Grid3X3,
+  List,
+  Eye
 } from 'lucide-react';
+import { BreadcrumbNav } from '@/components/BreadcrumbNav';
+import { FileViewModal } from '@/components/FileViewModal';
+import { useToast } from '@/hooks/use-toast';
 
-// Mock data for demonstration
-const mockFiles = [
+interface FileItem {
+  id: string;
+  name: string;
+  type: 'folder' | 'file';
+  size?: string;
+  modified: string;
+  fileType?: string;
+  isShared?: boolean;
+  parentPath?: string;
+}
+
+// Mock data with Nigerian names and content
+const mockFiles: FileItem[] = [
   {
     id: '1',
-    name: 'Project_Proposal.pdf',
-    type: 'PDF',
-    size: '2.5 MB',
+    name: 'Lagos_Project_Documents',
+    type: 'folder',
     modified: '2024-01-15',
-    shared: false,
+    parentPath: '',
   },
   {
     id: '2',
-    name: 'Budget_Analysis.xlsx',
-    type: 'Excel',
-    size: '1.8 MB',
+    name: 'Abuja_Conference_Images',
+    type: 'folder',
     modified: '2024-01-14',
-    shared: true,
+    parentPath: '',
   },
   {
     id: '3',
-    name: 'Meeting_Notes.docx',
-    type: 'Word',
-    size: '450 KB',
+    name: 'Kano_Business_Proposal.pdf',
+    type: 'file',
+    size: '2.8 MB',
+    modified: '2024-01-15',
+    fileType: 'PDF Document',
+    isShared: false,
+    parentPath: '',
+  },
+  {
+    id: '4',
+    name: 'Ibadan_Budget_Analysis.xlsx',
+    type: 'file',
+    size: '1.9 MB',
+    modified: '2024-01-14',
+    fileType: 'Excel Spreadsheet',
+    isShared: true,
+    parentPath: '',
+  },
+  {
+    id: '5',
+    name: 'Port_Harcourt_Meeting_Notes.docx',
+    type: 'file',
+    size: '520 KB',
     modified: '2024-01-13',
-    shared: false,
+    fileType: 'Word Document',
+    isShared: false,
+    parentPath: '',
+  },
+  {
+    id: '6',
+    name: 'Enugu_Market_Research.pptx',
+    type: 'file',
+    size: '4.2 MB',
+    modified: '2024-01-12',
+    fileType: 'PowerPoint Presentation',
+    isShared: true,
+    parentPath: '',
+  },
+  // Folder contents for Lagos_Project_Documents
+  {
+    id: '7',
+    name: 'Contract_Agreement.pdf',
+    type: 'file',
+    size: '1.2 MB',
+    modified: '2024-01-10',
+    fileType: 'PDF Document',
+    isShared: false,
+    parentPath: 'Lagos_Project_Documents',
+  },
+  {
+    id: '8',
+    name: 'Financial_Report.xlsx',
+    type: 'file',
+    size: '890 KB',
+    modified: '2024-01-09',
+    fileType: 'Excel Spreadsheet',
+    isShared: true,
+    parentPath: 'Lagos_Project_Documents',
+  },
+  // Folder contents for Abuja_Conference_Images
+  {
+    id: '9',
+    name: 'Conference_Photo_1.jpg',
+    type: 'file',
+    size: '2.1 MB',
+    modified: '2024-01-08',
+    fileType: 'JPEG Image',
+    isShared: false,
+    parentPath: 'Abuja_Conference_Images',
+  },
+  {
+    id: '10',
+    name: 'Speaker_Presentation.png',
+    type: 'file',
+    size: '1.5 MB',
+    modified: '2024-01-08',
+    fileType: 'PNG Image',
+    isShared: false,
+    parentPath: 'Abuja_Conference_Images',
   },
 ];
 
+const getFileIcon = (item: FileItem) => {
+  if (item.type === 'folder') return Folder;
+  
+  const fileType = item.fileType?.toLowerCase() || '';
+  if (fileType.includes('pdf')) return FileText;
+  if (fileType.includes('image') || fileType.includes('jpg') || fileType.includes('png')) return Image;
+  if (fileType.includes('excel') || fileType.includes('spreadsheet')) return FileSpreadsheet;
+  if (fileType.includes('powerpoint') || fileType.includes('presentation')) return Presentation;
+  return File;
+};
+
 const UserFiles = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [files] = useState(mockFiles);
+  const [currentPath, setCurrentPath] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { toast } = useToast();
 
-  const filteredFiles = files.filter(file =>
-    file.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter files based on current path and search term
+  const filteredFiles = mockFiles.filter(file => {
+    const matchesPath = file.parentPath === currentPath;
+    const matchesSearch = file.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesPath && matchesSearch;
+  });
+
+  // Get breadcrumb items
+  const getBreadcrumbItems = () => {
+    if (!currentPath) return [];
+    const pathParts = currentPath.split('/').filter(Boolean);
+    return pathParts.map((part, index) => ({
+      name: part,
+      path: pathParts.slice(0, index + 1).join('/')
+    }));
+  };
+
+  const handleNavigate = (path: string) => {
+    setCurrentPath(path);
+    setSearchTerm('');
+  };
+
+  const handleItemClick = (item: FileItem) => {
+    if (item.type === 'folder') {
+      const newPath = currentPath ? `${currentPath}/${item.name}` : item.name;
+      setCurrentPath(newPath);
+    } else {
+      setSelectedFile(item);
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleUpload = () => {
+    toast({
+      title: "Upload initiated",
+      description: "File upload functionality would be implemented here.",
+    });
+  };
+
+  const handleNewFolder = () => {
+    toast({
+      title: "New folder",
+      description: "New folder creation would be implemented here.",
+    });
+  };
+
+  const handleDownload = (file: FileItem) => {
+    toast({
+      title: "Download started",
+      description: `Downloading ${file.name}...`,
+    });
+  };
+
+  const handleShare = (file: FileItem) => {
+    toast({
+      title: "Share file",
+      description: `Sharing options for ${file.name} would appear here.`,
+    });
+  };
+
+  const handleEdit = (file: FileItem) => {
+    toast({
+      title: "Rename file",
+      description: `Rename dialog for ${file.name} would appear here.`,
+    });
+  };
+
+  const handleDelete = (file: FileItem) => {
+    toast({
+      title: "Delete file",
+      description: `${file.name} would be moved to trash.`,
+      variant: "destructive",
+    });
+  };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">My Files</h1>
-          <p className="text-muted-foreground">
-            Manage and organize your personal files
-          </p>
+          <h1 className="text-3xl font-bold">File Management</h1>
+          <BreadcrumbNav 
+            items={getBreadcrumbItems()} 
+            onNavigate={handleNavigate}
+          />
         </div>
         <div className="flex items-center space-x-2">
-          <Button>
+          <Button onClick={handleUpload} variant="default">
+            <Upload className="w-4 h-4 mr-2" />
+            Upload
+          </Button>
+          <Button onClick={handleNewFolder} variant="outline">
             <FolderPlus className="w-4 h-4 mr-2" />
             New Folder
           </Button>
-          <Button>
-            <Upload className="w-4 h-4 mr-2" />
-            Upload File
+          <Button variant="outline" size="sm">
+            Select All
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Files</CardTitle>
-            <Files className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{files.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Storage Used</CardTitle>
-            <Files className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">4.7 MB</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Shared Files</CardTitle>
-            <Share2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {files.filter(f => f.shared).length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recent</CardTitle>
-            <Files className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">3</div>
-          </CardContent>
-        </Card>
+      {/* Search and Controls */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search files..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-80"
+            />
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm">
+            <Filter className="w-4 h-4 mr-2" />
+            Sort
+          </Button>
+          <div className="flex border rounded-md">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="rounded-r-none"
+            >
+              <Grid3X3 className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="rounded-l-none"
+            >
+              <List className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Files</CardTitle>
-            <div className="flex items-center space-x-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search files..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 w-64"
-                />
-              </div>
-              <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead>Modified</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredFiles.map((file) => (
-                <TableRow key={file.id}>
-                  <TableCell className="font-medium">{file.name}</TableCell>
-                  <TableCell>{file.type}</TableCell>
-                  <TableCell>{file.size}</TableCell>
-                  <TableCell>{file.modified}</TableCell>
-                  <TableCell>
-                    {file.shared ? (
-                      <Badge variant="secondary">Shared</Badge>
-                    ) : (
-                      <Badge variant="outline">Private</Badge>
+      {/* File Grid/List */}
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {filteredFiles.map((item) => {
+            const IconComponent = getFileIcon(item);
+            return (
+              <div
+                key={item.id}
+                className="group relative p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                onClick={() => handleItemClick(item)}
+              >
+                <div className="flex flex-col items-center text-center space-y-2">
+                  <div className={`p-3 rounded-lg ${
+                    item.type === 'folder' 
+                      ? 'bg-blue-100 text-blue-600' 
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    <IconComponent className="h-8 w-8" />
+                  </div>
+                  <div className="w-full">
+                    <p className="text-sm font-medium truncate">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.type === 'folder' ? 'Folder' : item.fileType}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{item.modified}</p>
+                    {item.size && (
+                      <p className="text-xs text-muted-foreground">{item.size}</p>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Download className="w-4 h-4 mr-2" />
-                          Download
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Share2 className="w-4 h-4 mr-2" />
-                          Share
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </div>
+                </div>
+                
+                {/* Dropdown Menu */}
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-background border z-50">
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        if (item.type === 'file') {
+                          setSelectedFile(item);
+                          setIsModalOpen(true);
+                        }
+                      }}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        View
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(item);
+                      }}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        handleShare(item);
+                      }}>
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Share
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Shared Badge */}
+                {item.isShared && (
+                  <div className="absolute bottom-2 left-2">
+                    <Badge variant="secondary" className="text-xs">
+                      <Share2 className="w-3 h-3 mr-1" />
+                      Shared
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="border rounded-lg">
+          <div className="grid grid-cols-6 gap-4 p-4 border-b bg-muted/20 text-sm font-medium">
+            <div>Name</div>
+            <div>Type</div>
+            <div>Size</div>
+            <div>Modified</div>
+            <div>Status</div>
+            <div></div>
+          </div>
+          {filteredFiles.map((item) => {
+            const IconComponent = getFileIcon(item);
+            return (
+              <div
+                key={item.id}
+                className="grid grid-cols-6 gap-4 p-4 border-b hover:bg-muted/50 cursor-pointer transition-colors group"
+                onClick={() => handleItemClick(item)}
+              >
+                <div className="flex items-center space-x-2">
+                  <IconComponent className={`h-4 w-4 ${
+                    item.type === 'folder' ? 'text-blue-600' : 'text-gray-600'
+                  }`} />
+                  <span className="text-sm font-medium truncate">{item.name}</span>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {item.type === 'folder' ? 'Folder' : item.fileType}
+                </div>
+                <div className="text-sm text-muted-foreground">{item.size || '-'}</div>
+                <div className="text-sm text-muted-foreground">{item.modified}</div>
+                <div>
+                  {item.isShared ? (
+                    <Badge variant="secondary">Shared</Badge>
+                  ) : (
+                    <Badge variant="outline">Private</Badge>
+                  )}
+                </div>
+                <div className="flex justify-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-background border z-50">
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        if (item.type === 'file') {
+                          setSelectedFile(item);
+                          setIsModalOpen(true);
+                        }
+                      }}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        View
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(item);
+                      }}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        handleShare(item);
+                      }}>
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Share
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* File View Modal */}
+      <FileViewModal
+        file={selectedFile}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onDownload={handleDownload}
+        onShare={handleShare}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
     </div>
   );
 };

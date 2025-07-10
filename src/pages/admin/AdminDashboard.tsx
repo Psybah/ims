@@ -49,28 +49,28 @@ const AdminDashboard: React.FC = () => {
 
   const recentActivity = [
     {
-      user: 'Sarah Wilson',
+      user: 'Amina Yusuf',
       action: 'uploaded',
       file: 'quarterly-report.pdf',
       time: '2 minutes ago',
       type: 'upload'
     },
     {
-      user: 'John Doe',
+      user: 'Chinedu Emeka',
       action: 'downloaded',
       file: 'client-presentation.pptx',
       time: '5 minutes ago',
       type: 'download'
     },
     {
-      user: 'Mike Johnson',
+      user: 'Adebayo Okonkwo',
       action: 'viewed',
       file: 'project-timeline.xlsx',
       time: '8 minutes ago',
       type: 'view'
     },
     {
-      user: 'Emma Davis',
+      user: 'Kemi Adeleke',
       action: 'shared',
       file: 'design-assets.zip',
       time: '12 minutes ago',
