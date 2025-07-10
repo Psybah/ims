@@ -7,7 +7,13 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminFiles from "./pages/admin/AdminFiles";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminPermissions from "./pages/admin/AdminPermissions";
+import AdminTrash from "./pages/admin/AdminTrash";
 import UserDashboard from "./pages/user/UserDashboard";
+import UserFiles from "./pages/user/UserFiles";
+import SharedFiles from "./pages/user/SharedFiles";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,11 +47,41 @@ const AppRoutes = () => {
           <UserDashboard />
         </ProtectedRoute>
       } />
+      <Route path="/files" element={
+        <ProtectedRoute>
+          <UserFiles />
+        </ProtectedRoute>
+      } />
+      <Route path="/shared" element={
+        <ProtectedRoute>
+          <SharedFiles />
+        </ProtectedRoute>
+      } />
       
       {/* Admin Routes */}
       <Route path="/admin/dashboard" element={
         <ProtectedRoute requireAdmin>
           <AdminDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/files" element={
+        <ProtectedRoute requireAdmin>
+          <AdminFiles />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/users" element={
+        <ProtectedRoute requireAdmin>
+          <AdminUsers />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/permissions" element={
+        <ProtectedRoute requireAdmin>
+          <AdminPermissions />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/trash" element={
+        <ProtectedRoute requireAdmin>
+          <AdminTrash />
         </ProtectedRoute>
       } />
       
