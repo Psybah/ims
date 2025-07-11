@@ -12,7 +12,6 @@ import {
   Upload,
   Search,
   Download,
-  Share2,
   MoreVertical,
   FolderPlus,
   Filter,
@@ -24,7 +23,8 @@ import {
   File,
   Grid3X3,
   List,
-  Eye
+  Eye,
+  Star
 } from 'lucide-react';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { FileViewModal } from '@/components/FileViewModal';
@@ -37,7 +37,6 @@ interface FileItem {
   size?: string;
   modified: string;
   fileType?: string;
-  isShared?: boolean;
   parentPath?: string;
 }
 
@@ -64,7 +63,6 @@ const mockFiles: FileItem[] = [
     size: '2.8 MB',
     modified: '2024-01-15',
     fileType: 'PDF Document',
-    isShared: false,
     parentPath: '',
   },
   {
@@ -74,7 +72,6 @@ const mockFiles: FileItem[] = [
     size: '1.9 MB',
     modified: '2024-01-14',
     fileType: 'Excel Spreadsheet',
-    isShared: true,
     parentPath: '',
   },
   {
@@ -84,7 +81,6 @@ const mockFiles: FileItem[] = [
     size: '520 KB',
     modified: '2024-01-13',
     fileType: 'Word Document',
-    isShared: false,
     parentPath: '',
   },
   {
@@ -94,7 +90,6 @@ const mockFiles: FileItem[] = [
     size: '4.2 MB',
     modified: '2024-01-12',
     fileType: 'PowerPoint Presentation',
-    isShared: true,
     parentPath: '',
   },
   // Folder contents for Lagos_Project_Documents
@@ -105,7 +100,6 @@ const mockFiles: FileItem[] = [
     size: '1.2 MB',
     modified: '2024-01-10',
     fileType: 'PDF Document',
-    isShared: false,
     parentPath: 'Lagos_Project_Documents',
   },
   {
@@ -115,7 +109,6 @@ const mockFiles: FileItem[] = [
     size: '890 KB',
     modified: '2024-01-09',
     fileType: 'Excel Spreadsheet',
-    isShared: true,
     parentPath: 'Lagos_Project_Documents',
   },
   // Folder contents for Abuja_Conference_Images
@@ -126,7 +119,6 @@ const mockFiles: FileItem[] = [
     size: '2.1 MB',
     modified: '2024-01-08',
     fileType: 'JPEG Image',
-    isShared: false,
     parentPath: 'Abuja_Conference_Images',
   },
   {
@@ -136,7 +128,6 @@ const mockFiles: FileItem[] = [
     size: '1.5 MB',
     modified: '2024-01-08',
     fileType: 'PNG Image',
-    isShared: false,
     parentPath: 'Abuja_Conference_Images',
   },
 ];
@@ -193,16 +184,58 @@ const UserFiles = () => {
   };
 
   const handleUpload = () => {
-    toast({
-      title: "Upload initiated",
-      description: "File upload functionality would be implemented here.",
-    });
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.webkitdirectory = false;
+    input.accept = '*/*';
+    
+    input.onchange = (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      if (files.length > 0) {
+        toast({
+          title: "Files uploaded successfully",
+          description: `${files.length} file(s) uploaded to ${currentPath || 'root'} folder.`,
+        });
+      }
+    };
+    
+    input.click();
+  };
+
+  const handleUploadFolder = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.webkitdirectory = true;
+    input.multiple = true;
+    
+    input.onchange = (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      if (files.length > 0) {
+        toast({
+          title: "Folder uploaded successfully",
+          description: `Folder with ${files.length} file(s) uploaded to ${currentPath || 'root'} folder.`,
+        });
+      }
+    };
+    
+    input.click();
   };
 
   const handleNewFolder = () => {
+    const folderName = prompt('Enter folder name:');
+    if (folderName && folderName.trim()) {
+      toast({
+        title: "Folder created",
+        description: `"${folderName}" folder created successfully.`,
+      });
+    }
+  };
+
+  const handleStarredFiles = () => {
     toast({
-      title: "New folder",
-      description: "New folder creation would be implemented here.",
+      title: "Starred Files",
+      description: "Showing your starred files.",
     });
   };
 
@@ -213,12 +246,6 @@ const UserFiles = () => {
     });
   };
 
-  const handleShare = (file: FileItem) => {
-    toast({
-      title: "Share file",
-      description: `Sharing options for ${file.name} would appear here.`,
-    });
-  };
 
   const handleEdit = (file: FileItem) => {
     toast({
@@ -249,14 +276,19 @@ const UserFiles = () => {
         <div className="flex items-center space-x-2">
           <Button onClick={handleUpload} variant="default">
             <Upload className="w-4 h-4 mr-2" />
-            Upload
+            Upload Files
+          </Button>
+          <Button onClick={handleUploadFolder} variant="outline">
+            <Upload className="w-4 h-4 mr-2" />
+            Upload Folder
           </Button>
           <Button onClick={handleNewFolder} variant="outline">
             <FolderPlus className="w-4 h-4 mr-2" />
             New Folder
           </Button>
-          <Button variant="outline" size="sm">
-            Select All
+          <Button onClick={handleStarredFiles} variant="outline">
+            <Star className="w-4 h-4 mr-2" />
+            Starred Files
           </Button>
         </div>
       </div>
@@ -357,26 +389,10 @@ const UserFiles = () => {
                         <Download className="w-4 h-4 mr-2" />
                         Download
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare(item);
-                      }}>
-                        <Share2 className="w-4 h-4 mr-2" />
-                        Share
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
 
-                {/* Shared Badge */}
-                {item.isShared && (
-                  <div className="absolute bottom-2 left-2">
-                    <Badge variant="secondary" className="text-xs">
-                      <Share2 className="w-3 h-3 mr-1" />
-                      Shared
-                    </Badge>
-                  </div>
-                )}
               </div>
             );
           })}
@@ -411,11 +427,7 @@ const UserFiles = () => {
                 <div className="text-sm text-muted-foreground">{item.size || '-'}</div>
                 <div className="text-sm text-muted-foreground">{item.modified}</div>
                 <div>
-                  {item.isShared ? (
-                    <Badge variant="secondary">Shared</Badge>
-                  ) : (
-                    <Badge variant="outline">Private</Badge>
-                  )}
+                  <Badge variant="outline">Private</Badge>
                 </div>
                 <div className="flex justify-end">
                   <DropdownMenu>
@@ -442,13 +454,6 @@ const UserFiles = () => {
                         <Download className="w-4 h-4 mr-2" />
                         Download
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare(item);
-                      }}>
-                        <Share2 className="w-4 h-4 mr-2" />
-                        Share
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -464,7 +469,6 @@ const UserFiles = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onDownload={handleDownload}
-        onShare={handleShare}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />

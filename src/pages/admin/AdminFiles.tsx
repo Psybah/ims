@@ -13,7 +13,6 @@ import {
   Upload,
   Search,
   Download,
-  Share2,
   MoreVertical,
   FolderPlus,
   Filter,
@@ -41,8 +40,6 @@ interface AdminFileItem {
   owner: string;
   modified: string;
   fileType?: string;
-  isShared?: boolean;
-  sharedWith?: number;
   parentPath?: string;
   avatar: string;
 }
@@ -75,8 +72,6 @@ const mockAdminFiles: AdminFileItem[] = [
     owner: 'Adebayo Okonkwo',
     modified: '2024-01-15',
     fileType: 'PDF Document',
-    isShared: true,
-    sharedWith: 8,
     parentPath: '',
     avatar: 'AO'
   },
@@ -88,8 +83,6 @@ const mockAdminFiles: AdminFileItem[] = [
     owner: 'Amina Yusuf',
     modified: '2024-01-14',
     fileType: 'Excel Spreadsheet',
-    isShared: false,
-    sharedWith: 0,
     parentPath: '',
     avatar: 'AY'
   },
@@ -101,8 +94,6 @@ const mockAdminFiles: AdminFileItem[] = [
     owner: 'Chinedu Emeka',
     modified: '2024-01-13',
     fileType: 'Word Document',
-    isShared: true,
-    sharedWith: 12,
     parentPath: '',
     avatar: 'CE'
   },
@@ -114,8 +105,6 @@ const mockAdminFiles: AdminFileItem[] = [
     owner: 'Amina Yusuf',
     modified: '2024-01-12',
     fileType: 'PowerPoint Presentation',
-    isShared: true,
-    sharedWith: 5,
     parentPath: '',
     avatar: 'AY'
   },
@@ -128,8 +117,6 @@ const mockAdminFiles: AdminFileItem[] = [
     owner: 'Adebayo Okonkwo',
     modified: '2024-01-10',
     fileType: 'PDF Document',
-    isShared: true,
-    sharedWith: 15,
     parentPath: 'Company_Documents',
     avatar: 'AO'
   },
@@ -141,8 +128,6 @@ const mockAdminFiles: AdminFileItem[] = [
     owner: 'Adebayo Okonkwo',
     modified: '2024-01-09',
     fileType: 'Word Document',
-    isShared: true,
-    sharedWith: 20,
     parentPath: 'Company_Documents',
     avatar: 'AO'
   },
@@ -155,8 +140,6 @@ const mockAdminFiles: AdminFileItem[] = [
     owner: 'Chinedu Emeka',
     modified: '2024-01-08',
     fileType: 'Excel Spreadsheet',
-    isShared: false,
-    sharedWith: 0,
     parentPath: 'Finance_Reports',
     avatar: 'CE'
   },
@@ -168,8 +151,6 @@ const mockAdminFiles: AdminFileItem[] = [
     owner: 'Chinedu Emeka',
     modified: '2024-01-08',
     fileType: 'Excel Spreadsheet',
-    isShared: true,
-    sharedWith: 6,
     parentPath: 'Finance_Reports',
     avatar: 'CE'
   },
@@ -262,12 +243,6 @@ const AdminFiles = () => {
     });
   };
 
-  const handleShare = (file: AdminFileItem) => {
-    toast({
-      title: "Manage sharing",
-      description: `Sharing management for ${file.name} would appear here.`,
-    });
-  };
 
   const handleEdit = (file: AdminFileItem) => {
     toast({
@@ -426,13 +401,6 @@ const AdminFiles = () => {
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={(e) => {
                         e.stopPropagation();
-                        handleShare(item);
-                      }}>
-                        <Share2 className="w-4 h-4 mr-2" />
-                        Manage Sharing
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
                         handleArchive(item);
                       }}>
                         <Archive className="w-4 h-4 mr-2" />
@@ -442,15 +410,6 @@ const AdminFiles = () => {
                   </DropdownMenu>
                 </div>
 
-                {/* Shared Badge */}
-                {item.isShared && (
-                  <div className="absolute bottom-2 left-2">
-                    <Badge variant="secondary" className="text-xs">
-                      <Share2 className="w-3 h-3 mr-1" />
-                      {item.sharedWith}
-                    </Badge>
-                  </div>
-                )}
               </div>
             );
           })}
@@ -490,13 +449,9 @@ const AdminFiles = () => {
                   </Avatar>
                   <span className="text-sm truncate">{item.owner}</span>
                 </div>
-                <div className="text-sm text-muted-foreground">{item.modified}</div>
+                 <div className="text-sm text-muted-foreground">{item.modified}</div>
                 <div className="flex items-center space-x-2">
-                  {item.isShared ? (
-                    <Badge variant="secondary">Shared with {item.sharedWith}</Badge>
-                  ) : (
-                    <Badge variant="outline">Private</Badge>
-                  )}
+                  <Badge variant="outline">Private</Badge>
                 </div>
                 <div className="flex justify-end">
                   <DropdownMenu>
@@ -525,13 +480,6 @@ const AdminFiles = () => {
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={(e) => {
                         e.stopPropagation();
-                        handleShare(item);
-                      }}>
-                        <Share2 className="w-4 h-4 mr-2" />
-                        Manage Sharing
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
                         handleArchive(item);
                       }}>
                         <Archive className="w-4 h-4 mr-2" />
@@ -554,13 +502,11 @@ const AdminFiles = () => {
           type: selectedFile.type,
           size: selectedFile.size,
           modified: selectedFile.modified,
-          fileType: selectedFile.fileType,
-          isShared: selectedFile.isShared
+          fileType: selectedFile.fileType
         } : null}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onDownload={(file) => handleDownload(selectedFile!)}
-        onShare={(file) => handleShare(selectedFile!)}
         onEdit={(file) => handleEdit(selectedFile!)}
         onDelete={(file) => handleDelete(selectedFile!)}
       />

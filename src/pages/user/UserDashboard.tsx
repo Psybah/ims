@@ -32,10 +32,10 @@ const UserDashboard: React.FC = () => {
       color: 'text-green-600'
     },
     {
-      title: 'Shared Files',
-      value: '23',
-      description: 'Files shared with you',
-      icon: Share2,
+      title: 'Starred Files',
+      value: '8',
+      description: 'Your favorite files',
+      icon: Star,
       color: 'text-purple-600'
     }
   ];
@@ -45,29 +45,25 @@ const UserDashboard: React.FC = () => {
       name: 'Lagos_Business_Proposal.pdf',
       type: 'pdf',
       size: '2.4 MB',
-      modified: '2 hours ago',
-      shared: true
+      modified: '2 hours ago'
     },
     {
       name: 'Abuja_Conference_Photo.jpg',
       type: 'image',
       size: '1.8 MB',
-      modified: '5 hours ago',
-      shared: false
+      modified: '5 hours ago'
     },
     {
       name: 'Kano_Meeting_Notes.docx',
       type: 'document',
       size: '156 KB',
-      modified: '1 day ago',
-      shared: true
+      modified: '1 day ago'
     },
     {
       name: 'Port_Harcourt_Presentation.mp4',
       type: 'video',
       size: '45 MB',
-      modified: '2 days ago',
-      shared: false
+      modified: '2 days ago'
     }
   ];
 
@@ -92,11 +88,35 @@ const UserDashboard: React.FC = () => {
           </p>
         </div>
         <div className="flex space-x-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.webkitdirectory = true;
+            input.multiple = true;
+            input.onchange = (e) => {
+              const files = Array.from((e.target as HTMLInputElement).files || []);
+              if (files.length > 0) {
+                alert(`Folder with ${files.length} file(s) selected for upload.`);
+              }
+            };
+            input.click();
+          }}>
             <Download className="w-4 h-4 mr-2" />
-            Download
+            Upload Folder
           </Button>
-          <Button className="bg-gradient-primary">
+          <Button className="bg-gradient-primary" onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.multiple = true;
+            input.accept = '*/*';
+            input.onchange = (e) => {
+              const files = Array.from((e.target as HTMLInputElement).files || []);
+              if (files.length > 0) {
+                alert(`${files.length} file(s) selected for upload.`);
+              }
+            };
+            input.click();
+          }}>
             <Upload className="w-4 h-4 mr-2" />
             Upload Files
           </Button>
@@ -149,12 +169,6 @@ const UserDashboard: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {file.shared && (
-                      <Badge variant="outline" className="text-xs">
-                        <Share2 className="w-3 h-3 mr-1" />
-                        Shared
-                      </Badge>
-                    )}
                     <Button variant="ghost" size="sm">
                       <Star className="w-4 h-4" />
                     </Button>
@@ -174,19 +188,46 @@ const UserDashboard: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button className="w-full justify-start bg-gradient-primary" size="sm">
+            <Button 
+              className="w-full justify-start bg-gradient-primary" 
+              size="sm"
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.multiple = true;
+                input.accept = '*/*';
+                input.onchange = (e) => {
+                  const files = Array.from((e.target as HTMLInputElement).files || []);
+                  if (files.length > 0) {
+                    alert(`${files.length} file(s) selected for upload.`);
+                  }
+                };
+                input.click();
+              }}
+            >
               <Upload className="w-4 h-4 mr-2" />
               Upload New File
             </Button>
-            <Button variant="outline" className="w-full justify-start" size="sm">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start" 
+              size="sm"
+              onClick={() => {
+                const folderName = prompt('Enter folder name:');
+                if (folderName && folderName.trim()) {
+                  alert(`"${folderName}" folder created successfully.`);
+                }
+              }}
+            >
               <FolderOpen className="w-4 h-4 mr-2" />
               Create Folder
             </Button>
-            <Button variant="outline" className="w-full justify-start" size="sm">
-              <Share2 className="w-4 h-4 mr-2" />
-              Share Files
-            </Button>
-            <Button variant="outline" className="w-full justify-start" size="sm">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start" 
+              size="sm"
+              onClick={() => alert('Showing your starred files.')}
+            >
               <Star className="w-4 h-4 mr-2" />
               Starred Files
             </Button>

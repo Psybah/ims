@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { 
   X, 
   Download, 
-  Share2, 
   Edit, 
   Trash2,
   File,
@@ -22,7 +21,6 @@ interface FileItem {
   size?: string;
   modified: string;
   fileType?: string;
-  isShared?: boolean;
 }
 
 interface FileViewModalProps {
@@ -30,7 +28,6 @@ interface FileViewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDownload: (file: FileItem) => void;
-  onShare: (file: FileItem) => void;
   onEdit: (file: FileItem) => void;
   onDelete: (file: FileItem) => void;
 }
@@ -59,7 +56,6 @@ export function FileViewModal({
   isOpen, 
   onClose, 
   onDownload, 
-  onShare, 
   onEdit, 
   onDelete 
 }: FileViewModalProps) {
@@ -95,12 +91,6 @@ export function FileViewModal({
                     {file.fileType}
                   </Badge>
                 )}
-                {file.isShared && (
-                  <Badge variant="outline">
-                    <Share2 className="h-3 w-3 mr-1" />
-                    Shared
-                  </Badge>
-                )}
               </div>
             </div>
           </div>
@@ -131,10 +121,6 @@ export function FileViewModal({
               <Button onClick={() => onDownload(file)} size="sm">
                 <Download className="h-4 w-4 mr-2" />
                 Download
-              </Button>
-              <Button onClick={() => onShare(file)} variant="outline" size="sm">
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
               </Button>
               <Button onClick={() => onEdit(file)} variant="outline" size="sm">
                 <Edit className="h-4 w-4 mr-2" />
