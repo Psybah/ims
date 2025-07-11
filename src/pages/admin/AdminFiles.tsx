@@ -217,74 +217,152 @@ const AdminFiles = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold">File Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">File Management</h1>
           <BreadcrumbNav 
             items={getBreadcrumbItems()} 
             onNavigate={handleNavigate}
           />
         </div>
-        <div className="flex items-center space-x-2">
-          <Button onClick={handleUpload} variant="default">
-            <Upload className="w-4 h-4 mr-2" />
-            Upload
-          </Button>
-          <Button onClick={handleNewFolder} variant="outline">
-            <FolderPlus className="w-4 h-4 mr-2" />
-            New Folder
-          </Button>
-          <Button onClick={handleBulkActions} variant="outline">
-            <Archive className="w-4 h-4 mr-2" />
-            Bulk Actions
-          </Button>
-          <Button onClick={handleSystemCleanup} variant="outline">
-            <Trash2 className="w-4 h-4 mr-2" />
-            System Cleanup
-          </Button>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+          <div className="flex items-center space-x-2">
+            <Button onClick={handleUpload} variant="default" size="sm">
+              <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="text-sm">Upload</span>
+            </Button>
+            <Button onClick={handleNewFolder} variant="outline" size="sm">
+              <FolderPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="text-sm">New Folder</span>
+            </Button>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button onClick={handleBulkActions} variant="outline" size="sm">
+              <Archive className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="text-sm hidden sm:inline">Bulk Actions</span>
+              <span className="text-sm sm:hidden">Bulk</span>
+            </Button>
+            <Button onClick={handleSystemCleanup} variant="outline" size="sm">
+              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="text-sm hidden sm:inline">System Cleanup</span>
+              <span className="text-sm sm:hidden">Cleanup</span>
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Search and Controls */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search files and owners..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-80"
-            />
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+        <div className="relative flex-1 sm:flex-none">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search files and owners..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 w-full sm:w-80"
+          />
         </div>
-        <div className="flex items-center space-x-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <ArrowUpDown className="w-4 h-4 mr-2" />
-                Sort by {sortBy} ({sortOrder})
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleSort('name')}>
-                Sort by Name
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSort('modified')}>
-                Sort by Date Modified
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSort('size')}>
-                Sort by Size
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <ArrowUpDown className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="text-sm">Sort by {sortBy} ({sortOrder})</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleSort('name')}>
+              Sort by Name
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleSort('modified')}>
+              Sort by Date Modified
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleSort('size')}>
+              Sort by Size
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {/* File List */}
-      <div className="border rounded-lg">
+      {/* Mobile Card Layout */}
+      <div className="lg:hidden space-y-3">
+        {sortedFiles.map((item) => {
+          const IconComponent = getFileIcon(item);
+          return (
+            <div
+              key={item.id}
+              className="border rounded-lg p-3 hover:bg-muted/50 cursor-pointer transition-colors"
+              onClick={() => handleItemClick(item)}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  <IconComponent className={`h-5 w-5 flex-shrink-0 ${
+                    item.type === 'folder' ? 'text-blue-600' : 'text-gray-600'
+                  }`} />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-medium truncate">{item.name}</h3>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Avatar className="h-4 w-4">
+                        <AvatarFallback className="text-xs">{item.avatar}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-muted-foreground truncate">{item.owner}</span>
+                    </div>
+                  </div>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-background border z-50">
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      if (item.type === 'file') {
+                        setSelectedFile(item);
+                        setIsModalOpen(true);
+                      }
+                    }}>
+                      <Eye className="w-4 h-4 mr-2" />
+                      View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload(item);
+                    }}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      handleArchive(item);
+                    }}>
+                      <Archive className="w-4 h-4 mr-2" />
+                      Archive
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                <span>{item.type === 'folder' ? 'Folder' : item.fileType}</span>
+                <div className="flex items-center space-x-2">
+                  <span>{item.size || '-'}</span>
+                  <Badge variant="outline" className="text-xs">Private</Badge>
+                </div>
+              </div>
+              {item.modified && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Modified: {item.modified}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop Table Layout */}
+      <div className="hidden lg:block border rounded-lg">
         <div className="grid grid-cols-7 gap-4 p-4 border-b bg-muted/20 text-sm font-medium">
           <div>Name</div>
           <div>Type</div>
