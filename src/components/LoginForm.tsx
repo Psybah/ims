@@ -25,7 +25,7 @@ export const LoginForm: React.FC = () => {
 
   const demoAccounts = [
     { email: 'admin@filemanagement.com', role: 'Admin', icon: Shield },
-    { email: 'john@company.com', role: 'User', icon: Users }
+    { email: 'chinedu@company.com', role: 'User', icon: Users }
   ];
 
   return (
