@@ -15,15 +15,13 @@ import {
   Download,
   MoreVertical,
   FolderPlus,
-  Filter,
+  ArrowUpDown,
   Folder,
   FileText,
   Image,
   FileSpreadsheet,
   Presentation,
   File,
-  Grid3X3,
-  List,
   Eye,
   Archive,
   Trash2
@@ -31,132 +29,18 @@ import {
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { FileViewModal } from '@/components/FileViewModal';
 import { useToast } from '@/hooks/use-toast';
+import { useFileStorage, type FileItem } from '@/hooks/useFileStorage';
 
-interface AdminFileItem {
-  id: string;
-  name: string;
-  type: 'folder' | 'file';
-  size?: string;
-  owner: string;
-  modified: string;
-  fileType?: string;
-  parentPath?: string;
-  avatar: string;
-}
-
-// Mock data with Nigerian names and content
-const mockAdminFiles: AdminFileItem[] = [
-  {
-    id: '1',
-    name: 'Company_Documents',
-    type: 'folder',
-    owner: 'Adebayo Okonkwo',
-    modified: '2024-01-15',
-    parentPath: '',
-    avatar: 'AO'
-  },
-  {
-    id: '2',
-    name: 'Finance_Reports',
-    type: 'folder',
-    owner: 'Chinedu Emeka',
-    modified: '2024-01-14',
-    parentPath: '',
-    avatar: 'CE'
-  },
-  {
-    id: '3',
-    name: 'Kano_Operations_Manual.pdf',
-    type: 'file',
-    size: '5.8 MB',
-    owner: 'Adebayo Okonkwo',
-    modified: '2024-01-15',
-    fileType: 'PDF Document',
-    parentPath: '',
-    avatar: 'AO'
-  },
-  {
-    id: '4',
-    name: 'Lagos_Financial_Analysis.xlsx',
-    type: 'file',
-    size: '3.2 MB',
-    owner: 'Amina Yusuf',
-    modified: '2024-01-14',
-    fileType: 'Excel Spreadsheet',
-    parentPath: '',
-    avatar: 'AY'
-  },
-  {
-    id: '5',
-    name: 'Abuja_Project_Proposal.docx',
-    type: 'file',
-    size: '1.8 MB',
-    owner: 'Chinedu Emeka',
-    modified: '2024-01-13',
-    fileType: 'Word Document',
-    parentPath: '',
-    avatar: 'CE'
-  },
-  {
-    id: '6',
-    name: 'Port_Harcourt_Presentation.pptx',
-    type: 'file',
-    size: '6.4 MB',
-    owner: 'Amina Yusuf',
-    modified: '2024-01-12',
-    fileType: 'PowerPoint Presentation',
-    parentPath: '',
-    avatar: 'AY'
-  },
-  // Folder contents for Company_Documents
-  {
-    id: '7',
-    name: 'HR_Policies.pdf',
-    type: 'file',
-    size: '2.1 MB',
-    owner: 'Adebayo Okonkwo',
-    modified: '2024-01-10',
-    fileType: 'PDF Document',
-    parentPath: 'Company_Documents',
-    avatar: 'AO'
-  },
-  {
-    id: '8',
-    name: 'Employee_Handbook.docx',
-    type: 'file',
-    size: '1.5 MB',
-    owner: 'Adebayo Okonkwo',
-    modified: '2024-01-09',
-    fileType: 'Word Document',
-    parentPath: 'Company_Documents',
-    avatar: 'AO'
-  },
-  // Folder contents for Finance_Reports
-  {
-    id: '9',
-    name: 'Q4_Revenue_Report.xlsx',
-    type: 'file',
-    size: '2.8 MB',
-    owner: 'Chinedu Emeka',
-    modified: '2024-01-08',
-    fileType: 'Excel Spreadsheet',
-    parentPath: 'Finance_Reports',
-    avatar: 'CE'
-  },
-  {
-    id: '10',
-    name: 'Budget_Allocation.xlsx',
-    type: 'file',
-    size: '1.9 MB',
-    owner: 'Chinedu Emeka',
-    modified: '2024-01-08',
-    fileType: 'Excel Spreadsheet',
-    parentPath: 'Finance_Reports',
-    avatar: 'CE'
-  },
+// Nigerian names for admin users
+const adminUsers = [
+  { name: 'Adebayo Okonkwo', avatar: 'AO' },
+  { name: 'Chinedu Emeka', avatar: 'CE' },
+  { name: 'Amina Yusuf', avatar: 'AY' },
 ];
 
-const getFileIcon = (item: AdminFileItem) => {
+const getRandomUser = () => adminUsers[Math.floor(Math.random() * adminUsers.length)];
+
+const getFileIcon = (item: FileItem) => {
   if (item.type === 'folder') return Folder;
   
   const fileType = item.fileType?.toLowerCase() || '';
@@ -170,18 +54,30 @@ const getFileIcon = (item: AdminFileItem) => {
 const AdminFiles = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPath, setCurrentPath] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [selectedFile, setSelectedFile] = useState<AdminFileItem | null>(null);
+  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'name' | 'modified' | 'size'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const { toast } = useToast();
+  const { files, addFile, addFolder, deleteFile, sortFiles } = useFileStorage();
+
+  // Add owner and avatar info to files for admin view
+  const filesWithOwner = files.map(file => ({
+    ...file,
+    owner: file.owner || getRandomUser().name,
+    avatar: file.avatar || getRandomUser().avatar,
+  }));
 
   // Filter files based on current path and search term
-  const filteredFiles = mockAdminFiles.filter(file => {
+  const filteredFiles = filesWithOwner.filter(file => {
     const matchesPath = file.parentPath === currentPath;
     const matchesSearch = file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          file.owner.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesPath && matchesSearch;
   });
+
+  // Sort the filtered files
+  const sortedFiles = sortFiles(filteredFiles, sortBy, sortOrder);
 
   // Get breadcrumb items
   const getBreadcrumbItems = () => {
@@ -198,7 +94,7 @@ const AdminFiles = () => {
     setSearchTerm('');
   };
 
-  const handleItemClick = (item: AdminFileItem) => {
+  const handleItemClick = (item: FileItem) => {
     if (item.type === 'folder') {
       const newPath = currentPath ? `${currentPath}/${item.name}` : item.name;
       setCurrentPath(newPath);
@@ -209,17 +105,62 @@ const AdminFiles = () => {
   };
 
   const handleUpload = () => {
-    toast({
-      title: "Upload initiated",
-      description: "File upload functionality would be implemented here.",
-    });
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = '*/*';
+    
+    input.onchange = (e) => {
+      const uploadedFiles = Array.from((e.target as HTMLInputElement).files || []);
+      if (uploadedFiles.length > 0) {
+        const user = getRandomUser();
+        uploadedFiles.forEach(file => {
+          const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+          let fileType = 'Document';
+          
+          if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+            fileType = 'Image';
+          } else if (['pdf'].includes(fileExtension)) {
+            fileType = 'PDF Document';
+          } else if (['doc', 'docx'].includes(fileExtension)) {
+            fileType = 'Word Document';
+          } else if (['xls', 'xlsx'].includes(fileExtension)) {
+            fileType = 'Excel Spreadsheet';
+          } else if (['ppt', 'pptx'].includes(fileExtension)) {
+            fileType = 'PowerPoint Presentation';
+          }
+          
+          addFile({
+            name: file.name,
+            type: 'file',
+            size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+            fileType,
+            parentPath: currentPath,
+            owner: user.name,
+            avatar: user.avatar,
+          });
+        });
+        
+        toast({
+          title: "Files uploaded successfully",
+          description: `${uploadedFiles.length} file(s) uploaded to ${currentPath || 'root'} folder.`,
+        });
+      }
+    };
+    
+    input.click();
   };
 
   const handleNewFolder = () => {
-    toast({
-      title: "New folder",
-      description: "New folder creation would be implemented here.",
-    });
+    const folderName = prompt('Enter folder name:');
+    if (folderName && folderName.trim()) {
+      const user = getRandomUser();
+      addFolder(folderName.trim(), currentPath);
+      toast({
+        title: "Folder created",
+        description: `"${folderName}" folder created successfully.`,
+      });
+    }
   };
 
   const handleBulkActions = () => {
@@ -236,34 +177,43 @@ const AdminFiles = () => {
     });
   };
 
-  const handleDownload = (file: AdminFileItem) => {
+  const handleDownload = (file: FileItem) => {
     toast({
       title: "Download started",
       description: `Downloading ${file.name}...`,
     });
   };
 
-
-  const handleEdit = (file: AdminFileItem) => {
+  const handleEdit = (file: FileItem) => {
     toast({
       title: "Rename file",
       description: `Rename dialog for ${file.name} would appear here.`,
     });
   };
 
-  const handleDelete = (file: AdminFileItem) => {
+  const handleDelete = (file: FileItem) => {
+    deleteFile(file.id);
     toast({
-      title: "Delete file",
-      description: `${file.name} would be moved to trash.`,
+      title: "File deleted",
+      description: `${file.name} has been moved to trash.`,
       variant: "destructive",
     });
   };
 
-  const handleArchive = (file: AdminFileItem) => {
+  const handleArchive = (file: FileItem) => {
     toast({
       title: "Archive file",
       description: `${file.name} would be archived.`,
     });
+  };
+
+  const handleSort = (newSortBy: 'name' | 'modified' | 'size') => {
+    if (sortBy === newSortBy) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder('asc');
+    }
   };
 
   return (
@@ -311,188 +261,106 @@ const AdminFiles = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
-            <Filter className="w-4 h-4 mr-2" />
-            Sort
-          </Button>
-          <div className="flex border rounded-md">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-              className="rounded-r-none"
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className="rounded-l-none"
-            >
-              <List className="w-4 h-4" />
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <ArrowUpDown className="w-4 h-4 mr-2" />
+                Sort by {sortBy} ({sortOrder})
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleSort('name')}>
+                Sort by Name
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleSort('modified')}>
+                Sort by Date Modified
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleSort('size')}>
+                Sort by Size
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* File Grid/List */}
-      {viewMode === 'grid' ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {filteredFiles.map((item) => {
-            const IconComponent = getFileIcon(item);
-            return (
-              <div
-                key={item.id}
-                className="group relative p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                onClick={() => handleItemClick(item)}
-              >
-                <div className="flex flex-col items-center text-center space-y-2">
-                  <div className={`p-3 rounded-lg ${
-                    item.type === 'folder' 
-                      ? 'bg-blue-100 text-blue-600' 
-                      : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    <IconComponent className="h-8 w-8" />
-                  </div>
-                  <div className="w-full">
-                    <p className="text-sm font-medium truncate">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.type === 'folder' ? 'Folder' : item.fileType}
-                    </p>
-                    <div className="flex items-center justify-center space-x-1 mt-1">
-                      <Avatar className="h-4 w-4">
-                        <AvatarFallback className="text-xs">{item.avatar}</AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs text-muted-foreground truncate">{item.owner.split(' ')[0]}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{item.modified}</p>
-                    {item.size && (
-                      <p className="text-xs text-muted-foreground">{item.size}</p>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Dropdown Menu */}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-background border z-50">
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        if (item.type === 'file') {
-                          setSelectedFile(item);
-                          setIsModalOpen(true);
-                        }
-                      }}>
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(item);
-                      }}>
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        handleArchive(item);
-                      }}>
-                        <Archive className="w-4 h-4 mr-2" />
-                        Archive
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-              </div>
-            );
-          })}
+      {/* File List */}
+      <div className="border rounded-lg">
+        <div className="grid grid-cols-7 gap-4 p-4 border-b bg-muted/20 text-sm font-medium">
+          <div>Name</div>
+          <div>Type</div>
+          <div>Size</div>
+          <div>Owner</div>
+          <div>Modified</div>
+          <div>Status</div>
+          <div></div>
         </div>
-      ) : (
-        <div className="border rounded-lg">
-          <div className="grid grid-cols-7 gap-4 p-4 border-b bg-muted/20 text-sm font-medium">
-            <div>Name</div>
-            <div>Type</div>
-            <div>Size</div>
-            <div>Owner</div>
-            <div>Modified</div>
-            <div>Status</div>
-            <div></div>
-          </div>
-          {filteredFiles.map((item) => {
-            const IconComponent = getFileIcon(item);
-            return (
-              <div
-                key={item.id}
-                className="grid grid-cols-7 gap-4 p-4 border-b hover:bg-muted/50 cursor-pointer transition-colors group"
-                onClick={() => handleItemClick(item)}
-              >
-                <div className="flex items-center space-x-2">
-                  <IconComponent className={`h-4 w-4 ${
-                    item.type === 'folder' ? 'text-blue-600' : 'text-gray-600'
-                  }`} />
-                  <span className="text-sm font-medium truncate">{item.name}</span>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {item.type === 'folder' ? 'Folder' : item.fileType}
-                </div>
-                <div className="text-sm text-muted-foreground">{item.size || '-'}</div>
-                <div className="flex items-center space-x-2">
-                  <Avatar className="h-6 w-6">
-                    <AvatarFallback className="text-xs">{item.avatar}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm truncate">{item.owner}</span>
-                </div>
-                 <div className="text-sm text-muted-foreground">{item.modified}</div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="outline">Private</Badge>
-                </div>
-                <div className="flex justify-end">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-background border z-50">
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        if (item.type === 'file') {
-                          setSelectedFile(item);
-                          setIsModalOpen(true);
-                        }
-                      }}>
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(item);
-                      }}>
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        handleArchive(item);
-                      }}>
-                        <Archive className="w-4 h-4 mr-2" />
-                        Archive
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+        {sortedFiles.map((item) => {
+          const IconComponent = getFileIcon(item);
+          return (
+            <div
+              key={item.id}
+              className="grid grid-cols-7 gap-4 p-4 border-b hover:bg-muted/50 cursor-pointer transition-colors group"
+              onClick={() => handleItemClick(item)}
+            >
+              <div className="flex items-center space-x-2">
+                <IconComponent className={`h-4 w-4 ${
+                  item.type === 'folder' ? 'text-blue-600' : 'text-gray-600'
+                }`} />
+                <span className="text-sm font-medium truncate">{item.name}</span>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="text-sm text-muted-foreground">
+                {item.type === 'folder' ? 'Folder' : item.fileType}
+              </div>
+              <div className="text-sm text-muted-foreground">{item.size || '-'}</div>
+              <div className="flex items-center space-x-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className="text-xs">{item.avatar}</AvatarFallback>
+                </Avatar>
+                <span className="text-sm truncate">{item.owner}</span>
+              </div>
+               <div className="text-sm text-muted-foreground">{item.modified}</div>
+              <div className="flex items-center space-x-2">
+                <Badge variant="outline">Private</Badge>
+              </div>
+              <div className="flex justify-end">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-background border z-50">
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      if (item.type === 'file') {
+                        setSelectedFile(item);
+                        setIsModalOpen(true);
+                      }
+                    }}>
+                      <Eye className="w-4 h-4 mr-2" />
+                      View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload(item);
+                    }}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      handleArchive(item);
+                    }}>
+                      <Archive className="w-4 h-4 mr-2" />
+                      Archive
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* File View Modal */}
       <FileViewModal

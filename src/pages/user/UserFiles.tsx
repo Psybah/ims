@@ -14,123 +14,20 @@ import {
   Download,
   MoreVertical,
   FolderPlus,
-  Filter,
+  ArrowUpDown,
   Folder,
   FileText,
   Image,
   FileSpreadsheet,
   Presentation,
   File,
-  Grid3X3,
-  List,
   Eye,
   Star
 } from 'lucide-react';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { FileViewModal } from '@/components/FileViewModal';
 import { useToast } from '@/hooks/use-toast';
-
-interface FileItem {
-  id: string;
-  name: string;
-  type: 'folder' | 'file';
-  size?: string;
-  modified: string;
-  fileType?: string;
-  parentPath?: string;
-}
-
-// Mock data with Nigerian names and content
-const mockFiles: FileItem[] = [
-  {
-    id: '1',
-    name: 'Lagos_Project_Documents',
-    type: 'folder',
-    modified: '2024-01-15',
-    parentPath: '',
-  },
-  {
-    id: '2',
-    name: 'Abuja_Conference_Images',
-    type: 'folder',
-    modified: '2024-01-14',
-    parentPath: '',
-  },
-  {
-    id: '3',
-    name: 'Kano_Business_Proposal.pdf',
-    type: 'file',
-    size: '2.8 MB',
-    modified: '2024-01-15',
-    fileType: 'PDF Document',
-    parentPath: '',
-  },
-  {
-    id: '4',
-    name: 'Ibadan_Budget_Analysis.xlsx',
-    type: 'file',
-    size: '1.9 MB',
-    modified: '2024-01-14',
-    fileType: 'Excel Spreadsheet',
-    parentPath: '',
-  },
-  {
-    id: '5',
-    name: 'Port_Harcourt_Meeting_Notes.docx',
-    type: 'file',
-    size: '520 KB',
-    modified: '2024-01-13',
-    fileType: 'Word Document',
-    parentPath: '',
-  },
-  {
-    id: '6',
-    name: 'Enugu_Market_Research.pptx',
-    type: 'file',
-    size: '4.2 MB',
-    modified: '2024-01-12',
-    fileType: 'PowerPoint Presentation',
-    parentPath: '',
-  },
-  // Folder contents for Lagos_Project_Documents
-  {
-    id: '7',
-    name: 'Contract_Agreement.pdf',
-    type: 'file',
-    size: '1.2 MB',
-    modified: '2024-01-10',
-    fileType: 'PDF Document',
-    parentPath: 'Lagos_Project_Documents',
-  },
-  {
-    id: '8',
-    name: 'Financial_Report.xlsx',
-    type: 'file',
-    size: '890 KB',
-    modified: '2024-01-09',
-    fileType: 'Excel Spreadsheet',
-    parentPath: 'Lagos_Project_Documents',
-  },
-  // Folder contents for Abuja_Conference_Images
-  {
-    id: '9',
-    name: 'Conference_Photo_1.jpg',
-    type: 'file',
-    size: '2.1 MB',
-    modified: '2024-01-08',
-    fileType: 'JPEG Image',
-    parentPath: 'Abuja_Conference_Images',
-  },
-  {
-    id: '10',
-    name: 'Speaker_Presentation.png',
-    type: 'file',
-    size: '1.5 MB',
-    modified: '2024-01-08',
-    fileType: 'PNG Image',
-    parentPath: 'Abuja_Conference_Images',
-  },
-];
+import { useFileStorage, type FileItem } from '@/hooks/useFileStorage';
 
 const getFileIcon = (item: FileItem) => {
   if (item.type === 'folder') return Folder;
@@ -146,17 +43,22 @@ const getFileIcon = (item: FileItem) => {
 const UserFiles = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPath, setCurrentPath] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'name' | 'modified' | 'size'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const { toast } = useToast();
+  const { files, addFile, addFolder, deleteFile, sortFiles } = useFileStorage();
 
   // Filter files based on current path and search term
-  const filteredFiles = mockFiles.filter(file => {
+  const filteredFiles = files.filter(file => {
     const matchesPath = file.parentPath === currentPath;
     const matchesSearch = file.name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesPath && matchesSearch;
   });
+
+  // Sort the filtered files
+  const sortedFiles = sortFiles(filteredFiles, sortBy, sortOrder);
 
   // Get breadcrumb items
   const getBreadcrumbItems = () => {
@@ -191,11 +93,36 @@ const UserFiles = () => {
     input.accept = '*/*';
     
     input.onchange = (e) => {
-      const files = Array.from((e.target as HTMLInputElement).files || []);
-      if (files.length > 0) {
+      const uploadedFiles = Array.from((e.target as HTMLInputElement).files || []);
+      if (uploadedFiles.length > 0) {
+        uploadedFiles.forEach(file => {
+          const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+          let fileType = 'Document';
+          
+          if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+            fileType = 'Image';
+          } else if (['pdf'].includes(fileExtension)) {
+            fileType = 'PDF Document';
+          } else if (['doc', 'docx'].includes(fileExtension)) {
+            fileType = 'Word Document';
+          } else if (['xls', 'xlsx'].includes(fileExtension)) {
+            fileType = 'Excel Spreadsheet';
+          } else if (['ppt', 'pptx'].includes(fileExtension)) {
+            fileType = 'PowerPoint Presentation';
+          }
+          
+          addFile({
+            name: file.name,
+            type: 'file',
+            size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+            fileType,
+            parentPath: currentPath,
+          });
+        });
+        
         toast({
           title: "Files uploaded successfully",
-          description: `${files.length} file(s) uploaded to ${currentPath || 'root'} folder.`,
+          description: `${uploadedFiles.length} file(s) uploaded to ${currentPath || 'root'} folder.`,
         });
       }
     };
@@ -210,11 +137,36 @@ const UserFiles = () => {
     input.multiple = true;
     
     input.onchange = (e) => {
-      const files = Array.from((e.target as HTMLInputElement).files || []);
-      if (files.length > 0) {
+      const uploadedFiles = Array.from((e.target as HTMLInputElement).files || []);
+      if (uploadedFiles.length > 0) {
+        uploadedFiles.forEach(file => {
+          const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+          let fileType = 'Document';
+          
+          if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+            fileType = 'Image';
+          } else if (['pdf'].includes(fileExtension)) {
+            fileType = 'PDF Document';
+          } else if (['doc', 'docx'].includes(fileExtension)) {
+            fileType = 'Word Document';
+          } else if (['xls', 'xlsx'].includes(fileExtension)) {
+            fileType = 'Excel Spreadsheet';
+          } else if (['ppt', 'pptx'].includes(fileExtension)) {
+            fileType = 'PowerPoint Presentation';
+          }
+          
+          addFile({
+            name: file.name,
+            type: 'file',
+            size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+            fileType,
+            parentPath: currentPath,
+          });
+        });
+        
         toast({
           title: "Folder uploaded successfully",
-          description: `Folder with ${files.length} file(s) uploaded to ${currentPath || 'root'} folder.`,
+          description: `Folder with ${uploadedFiles.length} file(s) uploaded to ${currentPath || 'root'} folder.`,
         });
       }
     };
@@ -225,6 +177,7 @@ const UserFiles = () => {
   const handleNewFolder = () => {
     const folderName = prompt('Enter folder name:');
     if (folderName && folderName.trim()) {
+      addFolder(folderName.trim(), currentPath);
       toast({
         title: "Folder created",
         description: `"${folderName}" folder created successfully.`,
@@ -255,11 +208,21 @@ const UserFiles = () => {
   };
 
   const handleDelete = (file: FileItem) => {
+    deleteFile(file.id);
     toast({
-      title: "Delete file",
-      description: `${file.name} would be moved to trash.`,
+      title: "File deleted",
+      description: `${file.name} has been moved to trash.`,
       variant: "destructive",
     });
+  };
+
+  const handleSort = (newSortBy: 'name' | 'modified' | 'size') => {
+    if (sortBy === newSortBy) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder('asc');
+    }
   };
 
   return (
@@ -307,161 +270,92 @@ const UserFiles = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
-            <Filter className="w-4 h-4 mr-2" />
-            Sort
-          </Button>
-          <div className="flex border rounded-md">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-              className="rounded-r-none"
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className="rounded-l-none"
-            >
-              <List className="w-4 h-4" />
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <ArrowUpDown className="w-4 h-4 mr-2" />
+                Sort by {sortBy} ({sortOrder})
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleSort('name')}>
+                Sort by Name
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleSort('modified')}>
+                Sort by Date Modified
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleSort('size')}>
+                Sort by Size
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* File Grid/List */}
-      {viewMode === 'grid' ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {filteredFiles.map((item) => {
-            const IconComponent = getFileIcon(item);
-            return (
-              <div
-                key={item.id}
-                className="group relative p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                onClick={() => handleItemClick(item)}
-              >
-                <div className="flex flex-col items-center text-center space-y-2">
-                  <div className={`p-3 rounded-lg ${
-                    item.type === 'folder' 
-                      ? 'bg-blue-100 text-blue-600' 
-                      : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    <IconComponent className="h-8 w-8" />
-                  </div>
-                  <div className="w-full">
-                    <p className="text-sm font-medium truncate">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.type === 'folder' ? 'Folder' : item.fileType}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{item.modified}</p>
-                    {item.size && (
-                      <p className="text-xs text-muted-foreground">{item.size}</p>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Dropdown Menu */}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-background border z-50">
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        if (item.type === 'file') {
-                          setSelectedFile(item);
-                          setIsModalOpen(true);
-                        }
-                      }}>
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(item);
-                      }}>
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-              </div>
-            );
-          })}
+      {/* File List */}
+      <div className="border rounded-lg">
+        <div className="grid grid-cols-6 gap-4 p-4 border-b bg-muted/20 text-sm font-medium">
+          <div>Name</div>
+          <div>Type</div>
+          <div>Size</div>
+          <div>Modified</div>
+          <div>Status</div>
+          <div></div>
         </div>
-      ) : (
-        <div className="border rounded-lg">
-          <div className="grid grid-cols-6 gap-4 p-4 border-b bg-muted/20 text-sm font-medium">
-            <div>Name</div>
-            <div>Type</div>
-            <div>Size</div>
-            <div>Modified</div>
-            <div>Status</div>
-            <div></div>
-          </div>
-          {filteredFiles.map((item) => {
-            const IconComponent = getFileIcon(item);
-            return (
-              <div
-                key={item.id}
-                className="grid grid-cols-6 gap-4 p-4 border-b hover:bg-muted/50 cursor-pointer transition-colors group"
-                onClick={() => handleItemClick(item)}
-              >
-                <div className="flex items-center space-x-2">
-                  <IconComponent className={`h-4 w-4 ${
-                    item.type === 'folder' ? 'text-blue-600' : 'text-gray-600'
-                  }`} />
-                  <span className="text-sm font-medium truncate">{item.name}</span>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {item.type === 'folder' ? 'Folder' : item.fileType}
-                </div>
-                <div className="text-sm text-muted-foreground">{item.size || '-'}</div>
-                <div className="text-sm text-muted-foreground">{item.modified}</div>
-                <div>
-                  <Badge variant="outline">Private</Badge>
-                </div>
-                <div className="flex justify-end">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-background border z-50">
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        if (item.type === 'file') {
-                          setSelectedFile(item);
-                          setIsModalOpen(true);
-                        }
-                      }}>
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(item);
-                      }}>
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+        {sortedFiles.map((item) => {
+          const IconComponent = getFileIcon(item);
+          return (
+            <div
+              key={item.id}
+              className="grid grid-cols-6 gap-4 p-4 border-b hover:bg-muted/50 cursor-pointer transition-colors group"
+              onClick={() => handleItemClick(item)}
+            >
+              <div className="flex items-center space-x-2">
+                <IconComponent className={`h-4 w-4 ${
+                  item.type === 'folder' ? 'text-blue-600' : 'text-gray-600'
+                }`} />
+                <span className="text-sm font-medium truncate">{item.name}</span>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="text-sm text-muted-foreground">
+                {item.type === 'folder' ? 'Folder' : item.fileType}
+              </div>
+              <div className="text-sm text-muted-foreground">{item.size || '-'}</div>
+              <div className="text-sm text-muted-foreground">{item.modified}</div>
+              <div>
+                <Badge variant="outline">Private</Badge>
+              </div>
+              <div className="flex justify-end">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-background border z-50">
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      if (item.type === 'file') {
+                        setSelectedFile(item);
+                        setIsModalOpen(true);
+                      }
+                    }}>
+                      <Eye className="w-4 h-4 mr-2" />
+                      View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload(item);
+                    }}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* File View Modal */}
       <FileViewModal
