@@ -1,4 +1,4 @@
-import { ChevronRight, Home } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface BreadcrumbItem {
@@ -20,7 +20,7 @@ export function BreadcrumbNav({ items, onNavigate }: BreadcrumbNavProps) {
         onClick={() => onNavigate('')}
         className="h-auto p-1 hover:bg-muted"
       >
-        <Home className="h-4 w-4" />
+        Home
       </Button>
       
       {items.map((item, index) => (

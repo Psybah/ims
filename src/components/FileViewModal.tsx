@@ -1,8 +1,7 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  X, 
   Download, 
   Edit, 
   Trash2,
@@ -67,14 +66,7 @@ export function FileViewModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-semibold">File Details</DialogTitle>
-            <DialogClose asChild>
-              <Button variant="ghost" size="sm">
-                <X className="h-4 w-4" />
-              </Button>
-            </DialogClose>
-          </div>
+          <DialogTitle className="text-xl font-semibold">File Details</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">

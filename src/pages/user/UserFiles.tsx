@@ -226,55 +226,60 @@ const UserFiles = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">File Management</h1>
+      <div className="flex flex-col space-y-3 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">File Management</h1>
           <BreadcrumbNav 
             items={getBreadcrumbItems()} 
             onNavigate={handleNavigate}
           />
         </div>
-        <div className="flex items-center space-x-2">
-          <Button onClick={handleUpload} variant="default">
-            <Upload className="w-4 h-4 mr-2" />
-            Upload Files
-          </Button>
-          <Button onClick={handleUploadFolder} variant="outline">
-            <Upload className="w-4 h-4 mr-2" />
-            Upload Folder
-          </Button>
-          <Button onClick={handleNewFolder} variant="outline">
-            <FolderPlus className="w-4 h-4 mr-2" />
-            New Folder
-          </Button>
-          <Button onClick={handleStarredFiles} variant="outline">
-            <Star className="w-4 h-4 mr-2" />
-            Starred Files
-          </Button>
+        <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 lg:items-center">
+          <div className="flex space-x-2">
+            <Button onClick={handleUpload} variant="default" size="sm" className="flex-1 sm:flex-none">
+              <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="text-xs sm:text-sm">Upload Files</span>
+            </Button>
+            <Button onClick={handleUploadFolder} variant="outline" size="sm" className="flex-1 sm:flex-none">
+              <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="text-xs sm:text-sm">Upload Folder</span>
+            </Button>
+          </div>
+          <div className="flex space-x-2">
+            <Button onClick={handleNewFolder} variant="outline" size="sm" className="flex-1 sm:flex-none">
+              <FolderPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="text-xs sm:text-sm">New Folder</span>
+            </Button>
+            <Button onClick={handleStarredFiles} variant="outline" size="sm" className="flex-1 sm:flex-none">
+              <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="text-xs sm:text-sm">Starred</span>
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Search and Controls */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="flex items-center justify-between space-x-2 sm:space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4 flex-1">
+          <div className="relative flex-1 max-w-xs sm:max-w-sm">
+            <Search className="absolute left-2 sm:left-3 top-2 sm:top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             <Input
               placeholder="Search files..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-80"
+              className="pl-8 sm:pl-10 h-8 sm:h-10 text-sm"
             />
           </div>
         </div>
         <div className="flex items-center space-x-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <ArrowUpDown className="w-4 h-4 mr-2" />
-                Sort by {sortBy} ({sortOrder})
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                <ArrowUpDown className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Sort by {sortBy} ({sortOrder})</span>
+                <span className="sm:hidden">Sort</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -293,8 +298,9 @@ const UserFiles = () => {
       </div>
 
       {/* File List */}
-      <div className="border rounded-lg">
-        <div className="grid grid-cols-6 gap-4 p-4 border-b bg-muted/20 text-sm font-medium">
+      <div className="border rounded-lg overflow-hidden">
+        {/* Desktop Header */}
+        <div className="hidden lg:grid lg:grid-cols-6 gap-4 p-4 border-b bg-muted/20 text-sm font-medium">
           <div>Name</div>
           <div>Type</div>
           <div>Size</div>
@@ -302,55 +308,113 @@ const UserFiles = () => {
           <div>Status</div>
           <div></div>
         </div>
+        
+        {/* File Items */}
         {sortedFiles.map((item) => {
           const IconComponent = getFileIcon(item);
           return (
-            <div
-              key={item.id}
-              className="grid grid-cols-6 gap-4 p-4 border-b hover:bg-muted/50 cursor-pointer transition-colors group"
-              onClick={() => handleItemClick(item)}
-            >
-              <div className="flex items-center space-x-2">
-                <IconComponent className={`h-4 w-4 ${
-                  item.type === 'folder' ? 'text-blue-600' : 'text-gray-600'
-                }`} />
-                <span className="text-sm font-medium truncate">{item.name}</span>
+            <div key={item.id} className="border-b hover:bg-muted/50 cursor-pointer transition-colors group">
+              {/* Mobile Layout */}
+              <div className="lg:hidden p-3 sm:p-4" onClick={() => handleItemClick(item)}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                    <IconComponent className={`h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${
+                      item.type === 'folder' ? 'text-blue-600' : 'text-gray-600'
+                    }`} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm sm:text-base font-medium truncate">{item.name}</p>
+                      <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
+                        <span>{item.type === 'folder' ? 'Folder' : item.fileType}</span>
+                        {item.size && (
+                          <>
+                            <span>•</span>
+                            <span>{item.size}</span>
+                          </>
+                        )}
+                        <span>•</span>
+                        <span>{item.modified}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Badge variant="outline" className="text-xs">Private</Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 sm:h-8 sm:w-8 p-0">
+                          <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-background border z-50">
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          if (item.type === 'file') {
+                            setSelectedFile(item);
+                            setIsModalOpen(true);
+                          }
+                        }}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownload(item);
+                        }}>
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground">
-                {item.type === 'folder' ? 'Folder' : item.fileType}
-              </div>
-              <div className="text-sm text-muted-foreground">{item.size || '-'}</div>
-              <div className="text-sm text-muted-foreground">{item.modified}</div>
-              <div>
-                <Badge variant="outline">Private</Badge>
-              </div>
-              <div className="flex justify-end">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-background border z-50">
-                    <DropdownMenuItem onClick={(e) => {
-                      e.stopPropagation();
-                      if (item.type === 'file') {
-                        setSelectedFile(item);
-                        setIsModalOpen(true);
-                      }
-                    }}>
-                      <Eye className="w-4 h-4 mr-2" />
-                      View
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload(item);
-                    }}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+
+              {/* Desktop Layout */}
+              <div 
+                className="hidden lg:grid lg:grid-cols-6 gap-4 p-4"
+                onClick={() => handleItemClick(item)}
+              >
+                <div className="flex items-center space-x-2">
+                  <IconComponent className={`h-4 w-4 ${
+                    item.type === 'folder' ? 'text-blue-600' : 'text-gray-600'
+                  }`} />
+                  <span className="text-sm font-medium truncate">{item.name}</span>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {item.type === 'folder' ? 'Folder' : item.fileType}
+                </div>
+                <div className="text-sm text-muted-foreground">{item.size || '-'}</div>
+                <div className="text-sm text-muted-foreground">{item.modified}</div>
+                <div>
+                  <Badge variant="outline">Private</Badge>
+                </div>
+                <div className="flex justify-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-background border z-50">
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        if (item.type === 'file') {
+                          setSelectedFile(item);
+                          setIsModalOpen(true);
+                        }
+                      }}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        View
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(item);
+                      }}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </div>
           );

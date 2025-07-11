@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Settings, Bell } from 'lucide-react';
+import { LogOut, Bell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardLayoutProps {
@@ -29,36 +29,36 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         <div className="flex-1 flex flex-col">
           {/* Header */}
           <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-            <div className="flex items-center justify-between px-6 py-4">
-              <div className="flex items-center space-x-4">
-                <SidebarTrigger className="hover:bg-accent" />
-                <div>
-                  <h1 className="text-lg font-semibold text-foreground">
+            <div className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-4">
+              <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
+                <SidebarTrigger className="hover:bg-accent h-8 w-8 sm:h-10 sm:w-10" />
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-sm sm:text-lg font-semibold text-foreground truncate">
                     {user?.role === 'admin' ? 'Admin Dashboard' : 'My Workspace'}
                   </h1>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="hidden sm:block text-sm text-muted-foreground">
                     Manage your files and documents
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-1 sm:space-x-4">
                 {/* Notifications */}
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="w-5 h-5" />
+                <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:h-10 sm:w-10">
+                  <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full"></span>
                 </Button>
 
                 {/* User Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-auto px-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                    <Button variant="ghost" className="relative h-8 sm:h-10 w-auto px-2 sm:px-3">
+                      <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
+                        <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm">
                           {user?.avatar || user?.name?.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="ml-2 text-left">
+                      <div className="ml-1 sm:ml-2 text-left hidden sm:block">
                         <p className="text-sm font-medium leading-none">{user?.name}</p>
                         <p className="text-xs text-muted-foreground leading-none mt-1">
                           {user?.email}
@@ -79,15 +79,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logout} className="text-destructive">
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Log out</span>
@@ -99,7 +90,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 p-6">
+          <main className="flex-1 p-3 sm:p-6">
             {children}
           </main>
         </div>
