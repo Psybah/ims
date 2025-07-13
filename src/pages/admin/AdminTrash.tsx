@@ -23,7 +23,7 @@ import {
   Search,
   RotateCcw,
   MoreVertical,
-  Filter,
+  SlidersHorizontal,
   Archive,
   AlertTriangle,
   Clock
@@ -200,7 +200,7 @@ const AdminTrash = () => {
                 />
               </div>
               <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
+                <SlidersHorizontal className="w-4 h-4 mr-2" />
                 Filter
               </Button>
             </div>

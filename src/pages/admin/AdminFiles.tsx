@@ -24,10 +24,10 @@ import {
   File,
   Eye,
   Archive,
-  Trash2
 } from 'lucide-react';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { FileViewModal } from '@/components/FileViewModal';
+import { UploadProgress } from '@/components/UploadProgress';
 import { useToast } from '@/hooks/use-toast';
 import { useFileStorage, type FileItem } from '@/hooks/useFileStorage';
 
@@ -58,6 +58,15 @@ const AdminFiles = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'modified' | 'size'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [uploads, setUploads] = useState<Array<{
+    id: string;
+    name: string;
+    size: number;
+    progress: number;
+    status: 'uploading' | 'completed' | 'error';
+    error?: string;
+  }>>([]);
+  const [archivedFiles, setArchivedFiles] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const { files, addFile, addFolder, deleteFile, sortFiles } = useFileStorage();
 
@@ -68,12 +77,13 @@ const AdminFiles = () => {
     avatar: file.avatar || getRandomUser().avatar,
   }));
 
-  // Filter files based on current path and search term
+  // Filter files based on current path and search term (exclude archived)
   const filteredFiles = filesWithOwner.filter(file => {
     const matchesPath = file.parentPath === currentPath;
     const matchesSearch = file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          file.owner.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesPath && matchesSearch;
+    const notArchived = !archivedFiles.has(file.id);
+    return matchesPath && matchesSearch && notArchived;
   });
 
   // Sort the filtered files
@@ -114,36 +124,77 @@ const AdminFiles = () => {
       const uploadedFiles = Array.from((e.target as HTMLInputElement).files || []);
       if (uploadedFiles.length > 0) {
         const user = getRandomUser();
+        
         uploadedFiles.forEach(file => {
-          const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
-          let fileType = 'Document';
+          const uploadId = `${Date.now()}-${Math.random()}`;
           
-          if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
-            fileType = 'Image';
-          } else if (['pdf'].includes(fileExtension)) {
-            fileType = 'PDF Document';
-          } else if (['doc', 'docx'].includes(fileExtension)) {
-            fileType = 'Word Document';
-          } else if (['xls', 'xlsx'].includes(fileExtension)) {
-            fileType = 'Excel Spreadsheet';
-          } else if (['ppt', 'pptx'].includes(fileExtension)) {
-            fileType = 'PowerPoint Presentation';
-          }
-          
-          addFile({
+          // Add to upload progress
+          setUploads(prev => [...prev, {
+            id: uploadId,
             name: file.name,
-            type: 'file',
-            size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-            fileType,
-            parentPath: currentPath,
-            owner: user.name,
-            avatar: user.avatar,
-          });
+            size: file.size,
+            progress: 0,
+            status: 'uploading'
+          }]);
+          
+          // Simulate upload progress
+          let progress = 0;
+          const interval = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress >= 100) {
+              progress = 100;
+              clearInterval(interval);
+              
+              // Complete upload
+              setUploads(prev => prev.map(upload => 
+                upload.id === uploadId 
+                  ? { ...upload, progress: 100, status: 'completed' as const }
+                  : upload
+              ));
+              
+              // Add file to storage
+              const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+              let fileType = 'Document';
+              
+              if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+                fileType = 'Image';
+              } else if (['pdf'].includes(fileExtension)) {
+                fileType = 'PDF Document';
+              } else if (['doc', 'docx'].includes(fileExtension)) {
+                fileType = 'Word Document';
+              } else if (['xls', 'xlsx'].includes(fileExtension)) {
+                fileType = 'Excel Spreadsheet';
+              } else if (['ppt', 'pptx'].includes(fileExtension)) {
+                fileType = 'PowerPoint Presentation';
+              }
+              
+              addFile({
+                name: file.name,
+                type: 'file',
+                size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+                fileType,
+                parentPath: currentPath,
+                owner: user.name,
+                avatar: user.avatar,
+              });
+              
+              // Auto-dismiss completed uploads after 3 seconds
+              setTimeout(() => {
+                setUploads(prev => prev.filter(upload => upload.id !== uploadId));
+              }, 3000);
+            } else {
+              setUploads(prev => prev.map(upload => 
+                upload.id === uploadId 
+                  ? { ...upload, progress: Math.floor(progress) }
+                  : upload
+              ));
+            }
+          }, 200);
         });
         
         toast({
-          title: "Files uploaded successfully",
-          description: `${uploadedFiles.length} file(s) uploaded to ${currentPath || 'root'} folder.`,
+          title: "Upload started",
+          description: `Uploading ${uploadedFiles.length} file(s)...`,
         });
       }
     };
@@ -163,18 +214,16 @@ const AdminFiles = () => {
     }
   };
 
-  const handleBulkActions = () => {
+  const handleCancelUpload = (uploadId: string) => {
+    setUploads(prev => prev.filter(upload => upload.id !== uploadId));
     toast({
-      title: "Bulk actions",
-      description: "Bulk file management options would appear here.",
+      title: "Upload cancelled",
+      description: "File upload has been cancelled.",
     });
   };
 
-  const handleSystemCleanup = () => {
-    toast({
-      title: "System cleanup",
-      description: "System cleanup and optimization would start here.",
-    });
+  const handleDismissUpload = (uploadId: string) => {
+    setUploads(prev => prev.filter(upload => upload.id !== uploadId));
   };
 
   const handleDownload = (file: FileItem) => {
@@ -201,9 +250,10 @@ const AdminFiles = () => {
   };
 
   const handleArchive = (file: FileItem) => {
+    setArchivedFiles(prev => new Set([...prev, file.id]));
     toast({
-      title: "Archive file",
-      description: `${file.name} would be archived.`,
+      title: "File archived",
+      description: `${file.name} has been moved to archive.`,
     });
   };
 
@@ -236,18 +286,6 @@ const AdminFiles = () => {
             <Button onClick={handleNewFolder} variant="outline" size="sm">
               <FolderPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               <span className="text-sm">New Folder</span>
-            </Button>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button onClick={handleBulkActions} variant="outline" size="sm">
-              <Archive className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="text-sm hidden sm:inline">Bulk Actions</span>
-              <span className="text-sm sm:hidden">Bulk</span>
-            </Button>
-            <Button onClick={handleSystemCleanup} variant="outline" size="sm">
-              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="text-sm hidden sm:inline">System Cleanup</span>
-              <span className="text-sm sm:hidden">Cleanup</span>
             </Button>
           </div>
         </div>
@@ -455,6 +493,13 @@ const AdminFiles = () => {
         onDownload={(file) => handleDownload(selectedFile!)}
         onEdit={(file) => handleEdit(selectedFile!)}
         onDelete={(file) => handleDelete(selectedFile!)}
+      />
+
+      {/* Upload Progress */}
+      <UploadProgress
+        uploads={uploads}
+        onCancel={handleCancelUpload}
+        onDismiss={handleDismissUpload}
       />
     </div>
   );

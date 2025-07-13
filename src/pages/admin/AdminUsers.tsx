@@ -21,14 +21,14 @@ import {
 import {
   Users,
   Search,
-  UserPlus,
   MoreVertical,
-  Filter,
+  SlidersHorizontal,
   Shield,
   UserCheck,
   UserX,
   Mail
 } from 'lucide-react';
+import { AddUserModal } from '@/components/AddUserModal';
 
 // Mock data for demonstration
 const mockUsers = [
@@ -80,7 +80,11 @@ const mockUsers = [
 
 const AdminUsers = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [users] = useState(mockUsers);
+  const [users, setUsers] = useState(mockUsers);
+
+  const handleAddUser = (newUser: any) => {
+    setUsers(prev => [...prev, newUser]);
+  };
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,14 +127,7 @@ const AdminUsers = () => {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline">
-            <Mail className="w-4 h-4 mr-2" />
-            Bulk Email
-          </Button>
-          <Button>
-            <UserPlus className="w-4 h-4 mr-2" />
-            Add User
-          </Button>
+          <AddUserModal onUserAdd={handleAddUser} />
         </div>
       </div>
 
@@ -206,7 +203,7 @@ const AdminUsers = () => {
                 />
               </div>
               <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
+                <SlidersHorizontal className="w-4 h-4 mr-2" />
                 Filter
               </Button>
             </div>
