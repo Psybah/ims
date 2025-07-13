@@ -23,7 +23,7 @@ import {
   Search,
   Plus,
   MoreVertical,
-  Filter,
+  SlidersHorizontal,
   Lock,
   Unlock,
   Eye,
@@ -188,8 +188,8 @@ const AdminPermissions = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Categories</CardTitle>
-            <Filter className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Categories</CardTitle>
+            <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-bold">
@@ -217,8 +217,8 @@ const AdminPermissions = () => {
                 />
               </div>
               <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Filter</span>
+                <SlidersHorizontal className="w-4 h-4 mr-2" />
+                Filter
               </Button>
             </div>
           </div>

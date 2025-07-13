@@ -21,14 +21,14 @@ import {
 import {
   Users,
   Search,
-  UserPlus,
   MoreVertical,
-  Filter,
+  SlidersHorizontal,
   Shield,
   UserCheck,
   UserX,
   Mail
 } from 'lucide-react';
+import { AddUserModal } from '@/components/AddUserModal';
 
 // Mock data for demonstration
 const mockUsers = [
@@ -80,7 +80,11 @@ const mockUsers = [
 
 const AdminUsers = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [users] = useState(mockUsers);
+  const [users, setUsers] = useState(mockUsers);
+
+  const handleAddUser = (newUser: any) => {
+    setUsers(prev => [...prev, newUser]);
+  };
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,16 +127,7 @@ const AdminUsers = () => {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
-            <Mail className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-            <span className="hidden sm:inline">Bulk Email</span>
-            <span className="sm:hidden">Email</span>
-          </Button>
-          <Button size="sm" className="flex-1 sm:flex-none">
-            <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-            <span className="hidden sm:inline">Add User</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
+          <AddUserModal onUserAdd={handleAddUser} />
         </div>
       </div>
 
@@ -208,8 +203,8 @@ const AdminUsers = () => {
                 />
               </div>
               <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Filter</span>
+                <SlidersHorizontal className="w-4 h-4 mr-2" />
+                Filter
               </Button>
             </div>
           </div>
