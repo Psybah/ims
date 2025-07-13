@@ -30,6 +30,8 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
+import { AddPermissionModal } from '@/components/AddPermissionModal';
+import { FilterModal } from '@/components/FilterModal';
 
 // Mock data for demonstration
 const mockPermissions = [
@@ -88,11 +90,23 @@ const mockPermissions = [
 const AdminPermissions = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [permissions, setPermissions] = useState(mockPermissions);
+  const [filters, setFilters] = useState<any>({});
 
-  const filteredPermissions = permissions.filter(permission =>
-    permission.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    permission.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleAddPermission = (newPermission: any) => {
+    setPermissions(prev => [newPermission, ...prev]);
+  };
+
+  const handleFilterApply = (newFilters: any) => {
+    setFilters(newFilters);
+  };
+
+  const filteredPermissions = permissions.filter(permission => {
+    const matchesSearch = permission.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         permission.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !filters.category?.length || filters.category.includes(permission.category);
+    const matchesEnabled = !filters.enabled?.length || filters.enabled.includes(permission.enabled);
+    return matchesSearch && matchesCategory && matchesEnabled;
+  });
 
   const togglePermission = (id: string) => {
     setPermissions(prev => 
@@ -137,11 +151,7 @@ const AdminPermissions = () => {
             <span className="hidden sm:inline">Bulk Update</span>
             <span className="sm:hidden">Bulk</span>
           </Button>
-          <Button size="sm" className="flex-1 sm:flex-none">
-            <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-            <span className="hidden sm:inline">Add Permission</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
+          <AddPermissionModal onPermissionAdd={handleAddPermission} />
         </div>
       </div>
 
@@ -216,10 +226,7 @@ const AdminPermissions = () => {
                   className="pl-8 w-full sm:w-64"
                 />
               </div>
-              <Button variant="outline" size="sm">
-                <SlidersHorizontal className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
+              <FilterModal type="permissions" onFilterApply={handleFilterApply} />
             </div>
           </div>
         </CardHeader>

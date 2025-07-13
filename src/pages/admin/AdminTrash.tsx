@@ -28,6 +28,8 @@ import {
   AlertTriangle,
   Clock
 } from 'lucide-react';
+import { FilterModal } from '@/components/FilterModal';
+import { useToast } from '@/hooks/use-toast';
 
 // Mock data for demonstration
 const mockTrashedFiles = [
@@ -80,6 +82,8 @@ const mockTrashedFiles = [
 const AdminTrash = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [trashedFiles, setTrashedFiles] = useState(mockTrashedFiles);
+  const [filters, setFilters] = useState<any>({});
+  const { toast } = useToast();
 
   const filteredFiles = trashedFiles.filter(file =>
     file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -121,12 +125,28 @@ const AdminTrash = () => {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex-1 sm:flex-none"
+            onClick={() => {
+              setTrashedFiles([]);
+              toast({ title: "Files restored", description: "All files have been restored." });
+            }}
+          >
             <Archive className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             <span className="hidden sm:inline">Bulk Restore</span>
             <span className="sm:hidden">Restore</span>
           </Button>
-          <Button variant="destructive" size="sm" className="flex-1 sm:flex-none">
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            className="flex-1 sm:flex-none"
+            onClick={() => {
+              setTrashedFiles([]);
+              toast({ title: "Trash emptied", description: "All files permanently deleted.", variant: "destructive" });
+            }}
+          >
             <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             <span className="hidden sm:inline">Empty Trash</span>
             <span className="sm:hidden">Empty</span>
@@ -201,10 +221,7 @@ const AdminTrash = () => {
                   className="pl-8 w-full sm:w-64"
                 />
               </div>
-              <Button variant="outline" size="sm">
-                <SlidersHorizontal className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
+              <FilterModal type="trash" onFilterApply={(filters) => setFilters(filters)} />
             </div>
           </div>
         </CardHeader>

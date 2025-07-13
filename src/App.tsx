@@ -11,6 +11,9 @@ import AdminFiles from "./pages/admin/AdminFiles";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPermissions from "./pages/admin/AdminPermissions";
 import AdminTrash from "./pages/admin/AdminTrash";
+import AdminInvite from "./pages/admin/AdminInvite";
+import AdminOrganization from "./pages/admin/AdminOrganization";
+import AdminSettings from "./pages/admin/AdminSettings";
 import UserDashboard from "./pages/user/UserDashboard";
 import UserFiles from "./pages/user/UserFiles";
 
@@ -77,6 +80,21 @@ const AppRoutes = () => {
       <Route path="/admin/trash" element={
         <ProtectedRoute requireAdmin>
           <AdminTrash />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/invite" element={
+        <ProtectedRoute requireAdmin>
+          <AdminInvite />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/organization" element={
+        <ProtectedRoute requireAdmin>
+          <AdminOrganization />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/settings" element={
+        <ProtectedRoute requireAdmin>
+          <AdminSettings />
         </ProtectedRoute>
       } />
       

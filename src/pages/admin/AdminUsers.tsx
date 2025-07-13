@@ -29,6 +29,8 @@ import {
   Mail
 } from 'lucide-react';
 import { AddUserModal } from '@/components/AddUserModal';
+import { ChangeRoleModal } from '@/components/ChangeRoleModal';
+import { FilterModal } from '@/components/FilterModal';
 
 // Mock data for demonstration
 const mockUsers = [
@@ -81,15 +83,39 @@ const mockUsers = [
 const AdminUsers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState(mockUsers);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [filters, setFilters] = useState<any>({});
 
   const handleAddUser = (newUser: any) => {
     setUsers(prev => [...prev, newUser]);
   };
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleChangeRole = (userId: string, newRole: string) => {
+    setUsers(prev => prev.map(user => 
+      user.id === userId ? { ...user, role: newRole } : user
+    ));
+  };
+
+  const handleSuspendUser = (userId: string) => {
+    setUsers(prev => prev.map(user => 
+      user.id === userId 
+        ? { ...user, status: user.status === 'Active' ? 'Suspended' : 'Active' }
+        : user
+    ));
+  };
+
+  const handleFilterApply = (newFilters: any) => {
+    setFilters(newFilters);
+  };
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = !filters.status?.length || filters.status.includes(user.status);
+    const matchesRole = !filters.role?.length || filters.role.includes(user.role);
+    return matchesSearch && matchesStatus && matchesRole;
+  });
 
   const getRoleVariant = (role: string) => {
     switch (role) {
@@ -202,10 +228,7 @@ const AdminUsers = () => {
                   className="pl-8 w-full sm:w-64"
                 />
               </div>
-              <Button variant="outline" size="sm">
-                <SlidersHorizontal className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
+              <FilterModal type="users" onFilterApply={handleFilterApply} />
             </div>
           </div>
         </CardHeader>
@@ -265,20 +288,25 @@ const AdminUsers = () => {
                           <DropdownMenuItem>
                             Edit User
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedUser(user);
+                            setIsRoleModalOpen(true);
+                          }}>
                             <Shield className="w-4 h-4 mr-2" />
                             Change Role
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Mail className="w-4 h-4 mr-2" />
-                            Send Email
-                          </DropdownMenuItem>
                           {user.status === 'Active' ? (
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleSuspendUser(user.id)}
+                            >
                               Suspend User
                             </DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem className="text-green-600">
+                            <DropdownMenuItem 
+                              className="text-green-600"
+                              onClick={() => handleSuspendUser(user.id)}
+                            >
                               Activate User
                             </DropdownMenuItem>
                           )}
@@ -316,20 +344,25 @@ const AdminUsers = () => {
                           <DropdownMenuItem>
                             Edit User
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedUser(user);
+                            setIsRoleModalOpen(true);
+                          }}>
                             <Shield className="w-4 h-4 mr-2" />
                             Change Role
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Mail className="w-4 h-4 mr-2" />
-                            Send Email
-                          </DropdownMenuItem>
                           {user.status === 'Active' ? (
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleSuspendUser(user.id)}
+                            >
                               Suspend User
                             </DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem className="text-green-600">
+                            <DropdownMenuItem 
+                              className="text-green-600"
+                              onClick={() => handleSuspendUser(user.id)}
+                            >
                               Activate User
                             </DropdownMenuItem>
                           )}
@@ -367,6 +400,13 @@ const AdminUsers = () => {
           </div>
         </CardContent>
       </Card>
+
+      <ChangeRoleModal
+        user={selectedUser}
+        open={isRoleModalOpen}
+        onOpenChange={setIsRoleModalOpen}
+        onRoleChange={handleChangeRole}
+      />
     </div>
   );
 };
