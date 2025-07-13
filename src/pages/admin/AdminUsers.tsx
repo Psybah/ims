@@ -114,34 +114,36 @@ const AdminUsers = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold">User Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">User Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Manage user accounts, roles, and permissions
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline">
-            <Mail className="w-4 h-4 mr-2" />
-            Bulk Email
+          <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+            <Mail className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+            <span className="hidden sm:inline">Bulk Email</span>
+            <span className="sm:hidden">Email</span>
           </Button>
-          <Button>
-            <UserPlus className="w-4 h-4 mr-2" />
-            Add User
+          <Button size="sm" className="flex-1 sm:flex-none">
+            <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+            <span className="hidden sm:inline">Add User</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Users</CardTitle>
+            <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
+            <div className="text-xl sm:text-2xl font-bold">{users.length}</div>
             <p className="text-xs text-muted-foreground">
               Registered accounts
             </p>
@@ -149,11 +151,11 @@ const AdminUsers = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Active Users</CardTitle>
+            <UserCheck className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl sm:text-2xl font-bold">
               {users.filter(u => u.status === 'Active').length}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -163,11 +165,11 @@ const AdminUsers = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Admins</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Admins</CardTitle>
+            <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl sm:text-2xl font-bold">
               {users.filter(u => u.role === 'Admin').length}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -177,11 +179,11 @@ const AdminUsers = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactive</CardTitle>
-            <UserX className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Inactive</CardTitle>
+            <UserX className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl sm:text-2xl font-bold">
               {users.filter(u => u.status === 'Inactive').length}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -193,103 +195,181 @@ const AdminUsers = () => {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>All Users</CardTitle>
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+            <CardTitle className="text-lg sm:text-xl">All Users</CardTitle>
             <div className="flex items-center space-x-2">
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-none">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search users..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 w-64"
+                  className="pl-8 w-full sm:w-64"
                 />
               </div>
               <Button variant="outline" size="sm">
                 <Filter className="w-4 h-4 mr-2" />
-                Filter
+                <span className="hidden sm:inline">Filter</span>
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Login</TableHead>
-                <TableHead>Files</TableHead>
-                <TableHead>Storage Used</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback>
-                          {user.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{user.name}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
+          {/* Desktop Table View */}
+          <div className="hidden lg:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Login</TableHead>
+                  <TableHead>Files</TableHead>
+                  <TableHead>Storage Used</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={user.avatar} />
+                          <AvatarFallback>
+                            {user.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{user.name}</div>
+                          <div className="text-sm text-muted-foreground">{user.email}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getRoleVariant(user.role)}>
+                        {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(user.status)}>
+                        {user.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{user.lastLogin}</TableCell>
+                    <TableCell>{user.filesCount}</TableCell>
+                    <TableCell>{user.storageUsed}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            Edit User
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Shield className="w-4 h-4 mr-2" />
+                            Change Role
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Mail className="w-4 h-4 mr-2" />
+                            Send Email
+                          </DropdownMenuItem>
+                          {user.status === 'Active' ? (
+                            <DropdownMenuItem className="text-destructive">
+                              Suspend User
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem className="text-green-600">
+                              Activate User
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-3">
+            {filteredUsers.map((user) => (
+              <Card key={user.id} className="p-3">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user.avatar} />
+                    <AvatarFallback>
+                      {user.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-medium text-sm truncate">{user.name}</h3>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            Edit User
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Shield className="w-4 h-4 mr-2" />
+                            Change Role
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Mail className="w-4 h-4 mr-2" />
+                            Send Email
+                          </DropdownMenuItem>
+                          {user.status === 'Active' ? (
+                            <DropdownMenuItem className="text-destructive">
+                              Suspend User
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem className="text-green-600">
+                              Activate User
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground truncate mb-2">
+                      {user.email}
+                    </p>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={getRoleVariant(user.role)} className="text-xs">
+                          {user.role}
+                        </Badge>
+                        <Badge variant={getStatusVariant(user.status)} className="text-xs">
+                          {user.status}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3 text-xs text-muted-foreground">
+                        <span>{user.filesCount} files</span>
+                        <span>{user.storageUsed}</span>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getRoleVariant(user.role)}>
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusVariant(user.status)}>
-                      {user.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{user.lastLogin}</TableCell>
-                  <TableCell>{user.filesCount}</TableCell>
-                  <TableCell>{user.storageUsed}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          Edit User
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Shield className="w-4 h-4 mr-2" />
-                          Change Role
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Mail className="w-4 h-4 mr-2" />
-                          Send Email
-                        </DropdownMenuItem>
-                        {user.status === 'Active' ? (
-                          <DropdownMenuItem className="text-destructive">
-                            Suspend User
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem className="text-green-600">
-                            Activate User
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Last login: {user.lastLogin}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
