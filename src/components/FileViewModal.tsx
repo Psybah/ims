@@ -66,7 +66,7 @@ export function FileViewModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">File Details</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">File Details</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">

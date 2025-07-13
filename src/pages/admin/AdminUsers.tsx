@@ -21,19 +21,39 @@ import {
 import {
   Users,
   Search,
+  UserPlus,
   MoreVertical,
-  SlidersHorizontal,
+  Filter,
   Shield,
   UserCheck,
   UserX,
   Mail
 } from 'lucide-react';
+import { EmptyState } from '@/components/EmptyState';
 import { AddUserModal } from '@/components/AddUserModal';
+import { EditUserModal } from '@/components/EditUserModal';
 import { ChangeRoleModal } from '@/components/ChangeRoleModal';
 import { FilterModal } from '@/components/FilterModal';
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  lastLogin: string;
+  filesCount: number;
+  storageUsed: string;
+  avatar: string;
+}
+
+interface FilterState {
+  status?: string[];
+  role?: string[];
+}
+
 // Mock data for demonstration
-const mockUsers = [
+const mockUsers: User[] = [
   {
     id: '1',
     name: 'John Doe',
@@ -82,13 +102,22 @@ const mockUsers = [
 
 const AdminUsers = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [users, setUsers] = useState(mockUsers);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
-  const [filters, setFilters] = useState<any>({});
 
-  const handleAddUser = (newUser: any) => {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [filters, setFilters] = useState<FilterState>({});
+
+  const handleAddUser = (newUser: User) => {
     setUsers(prev => [...prev, newUser]);
+  };
+
+  const handleEditUser = (userId: string, updatedUser: Partial<User>) => {
+    setUsers(prev => prev.map(user => 
+      user.id === userId ? { ...user, ...updatedUser } : user
+    ));
   };
 
   const handleChangeRole = (userId: string, newRole: string) => {
@@ -105,7 +134,7 @@ const AdminUsers = () => {
     ));
   };
 
-  const handleFilterApply = (newFilters: any) => {
+  const handleFilterApply = (newFilters: FilterState) => {
     setFilters(newFilters);
   };
 
@@ -233,22 +262,41 @@ const AdminUsers = () => {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Empty State */}
+          {filteredUsers.length === 0 && (
+            <EmptyState
+              icon={Users}
+              title="No users found"
+              description={
+                searchTerm 
+                  ? "No users match your search criteria. Try adjusting your search terms."
+                  : "There are no users in the system yet. Add your first user to get started."
+              }
+              actionLabel={!searchTerm ? "Add User" : undefined}
+              onAction={!searchTerm ? () => {
+                // AddUserModal is embedded in the header, so we'll disable this action
+                // Users can click the Add User button in the header instead
+              } : undefined}
+            />
+          )}
+
           {/* Desktop Table View */}
-          <div className="hidden lg:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead>Files</TableHead>
-                  <TableHead>Storage Used</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
+          {filteredUsers.length > 0 && (
+            <div className="hidden lg:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last Login</TableHead>
+                    <TableHead>Files</TableHead>
+                    <TableHead>Storage Used</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
@@ -285,14 +333,16 @@ const AdminUsers = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setUserToEdit(user);
+                            setIsEditModalOpen(true);
+                          }}>
                             Edit User
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => {
                             setSelectedUser(user);
                             setIsRoleModalOpen(true);
                           }}>
-                            <Shield className="w-4 h-4 mr-2" />
                             Change Role
                           </DropdownMenuItem>
                           {user.status === 'Active' ? (
@@ -315,12 +365,14 @@ const AdminUsers = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
-            </Table>
-          </div>
+                                </TableBody>
+                </Table>
+              </div>
+            )}
 
-          {/* Mobile Card View */}
-          <div className="lg:hidden space-y-3">
+            {/* Mobile Card View */}
+            {filteredUsers.length > 0 && (
+              <div className="lg:hidden space-y-3">
             {filteredUsers.map((user) => (
               <Card key={user.id} className="p-3">
                 <div className="flex items-center space-x-3">
@@ -341,14 +393,16 @@ const AdminUsers = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setUserToEdit(user);
+                            setIsEditModalOpen(true);
+                          }}>
                             Edit User
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => {
                             setSelectedUser(user);
                             setIsRoleModalOpen(true);
                           }}>
-                            <Shield className="w-4 h-4 mr-2" />
                             Change Role
                           </DropdownMenuItem>
                           {user.status === 'Active' ? (
@@ -397,14 +451,21 @@ const AdminUsers = () => {
                 </div>
               </Card>
             ))}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      <ChangeRoleModal
-        user={selectedUser}
+      
+      <EditUserModal 
+        user={userToEdit}
+        isOpen={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        onUserUpdate={handleEditUser}
+      />
+      <ChangeRoleModal 
         open={isRoleModalOpen}
         onOpenChange={setIsRoleModalOpen}
+        user={selectedUser}
         onRoleChange={handleChangeRole}
       />
     </div>

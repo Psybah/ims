@@ -6,7 +6,6 @@ import {
   Settings, 
   Shield, 
   Trash2, 
-  UserPlus,
   Building2,
   Mail,
   HardDrive,
@@ -35,7 +34,6 @@ const adminItems = [
   { title: 'Users', url: '/admin/users', icon: Users },
   { title: 'Permissions', url: '/admin/permissions', icon: Shield },
   { title: 'Trash', url: '/admin/trash', icon: Trash2 },
-  { title: 'Invite Users', url: '/admin/invite', icon: UserPlus },
   { title: 'Organization', url: '/admin/organization', icon: Building2 },
   { title: 'Settings', url: '/admin/settings', icon: Settings },
 ];

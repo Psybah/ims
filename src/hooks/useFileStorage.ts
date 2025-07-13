@@ -130,7 +130,7 @@ export const useFileStorage = () => {
   const addFile = (file: Omit<FileItem, 'id' | 'modified'>) => {
     const newFile: FileItem = {
       ...file,
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       modified: new Date().toISOString().split('T')[0],
     };
     setFiles(prev => [...prev, newFile]);
@@ -139,7 +139,7 @@ export const useFileStorage = () => {
 
   const addFolder = (name: string, parentPath: string = '') => {
     const newFolder: FileItem = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name,
       type: 'folder',
       modified: new Date().toISOString().split('T')[0],
@@ -153,6 +153,14 @@ export const useFileStorage = () => {
     setFiles(prev => prev.filter(file => file.id !== id));
   };
 
+  const updateFile = (id: string, updates: Partial<Omit<FileItem, 'id'>>) => {
+    setFiles(prev => prev.map(file => 
+      file.id === id 
+        ? { ...file, ...updates, modified: new Date().toISOString().split('T')[0] }
+        : file
+    ));
+  };
+
   const sortFiles = (files: FileItem[], sortBy: 'name' | 'modified' | 'size', sortOrder: 'asc' | 'desc') => {
     return [...files].sort((a, b) => {
       // Always put folders first
@@ -160,7 +168,6 @@ export const useFileStorage = () => {
       if (a.type === 'file' && b.type === 'folder') return 1;
       
       let comparison = 0;
-      
       switch (sortBy) {
         case 'name':
           comparison = a.name.localeCompare(b.name);
@@ -168,11 +175,12 @@ export const useFileStorage = () => {
         case 'modified':
           comparison = new Date(a.modified).getTime() - new Date(b.modified).getTime();
           break;
-        case 'size':
+        case 'size': {
           const aSize = a.size ? parseFloat(a.size.replace(/[^\d.]/g, '')) : 0;
           const bSize = b.size ? parseFloat(b.size.replace(/[^\d.]/g, '')) : 0;
           comparison = aSize - bSize;
           break;
+        }
         default:
           comparison = 0;
       }
@@ -186,6 +194,7 @@ export const useFileStorage = () => {
     addFile,
     addFolder,
     deleteFile,
+    updateFile,
     sortFiles,
   };
 };

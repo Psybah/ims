@@ -32,6 +32,27 @@ import {
 } from 'lucide-react';
 import { AddPermissionModal } from '@/components/AddPermissionModal';
 import { FilterModal } from '@/components/FilterModal';
+import { ViewPermissionModal } from '@/components/ViewPermissionModal';
+import { EditPermissionModal } from '@/components/EditPermissionModal';
+import { ManageUsersModal } from '@/components/ManageUsersModal';
+import { DeletePermissionDialog } from '@/components/DeletePermissionDialog';
+
+// Types and interfaces
+interface Permission {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  enabled: boolean;
+  usersWithPermission: number;
+  createdBy: string;
+  lastModified: string;
+}
+
+interface FilterState {
+  category?: string[];
+  enabled?: boolean[];
+}
 
 // Mock data for demonstration
 const mockPermissions = [
@@ -89,15 +110,62 @@ const mockPermissions = [
 
 const AdminPermissions = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [permissions, setPermissions] = useState(mockPermissions);
-  const [filters, setFilters] = useState<any>({});
+  const [permissions, setPermissions] = useState<Permission[]>(mockPermissions);
+  const [filters, setFilters] = useState<FilterState>({});
+  
+  // Modal states
+  const [viewPermission, setViewPermission] = useState<Permission | null>(null);
+  const [editPermission, setEditPermission] = useState<Permission | null>(null);
+  const [manageUsersPermission, setManageUsersPermission] = useState<Permission | null>(null);
+  const [deletePermission, setDeletePermission] = useState<Permission | null>(null);
 
-  const handleAddPermission = (newPermission: any) => {
+  const handleAddPermission = (newPermission: Permission) => {
     setPermissions(prev => [newPermission, ...prev]);
   };
 
-  const handleFilterApply = (newFilters: any) => {
+  const handleFilterApply = (newFilters: FilterState) => {
     setFilters(newFilters);
+  };
+
+  // Action handlers
+  const handleViewPermission = (permission: Permission) => {
+    setViewPermission(permission);
+  };
+
+  const handleEditPermission = (permission: Permission) => {
+    setEditPermission(permission);
+  };
+
+  const handleManageUsers = (permission: Permission) => {
+    setManageUsersPermission(permission);
+  };
+
+  const handleDeletePermission = (permission: Permission) => {
+    setDeletePermission(permission);
+  };
+
+  // Modal handlers
+  const handleEditSave = (updatedPermission: Permission) => {
+    setPermissions(prev => 
+      prev.map(p => p.id === updatedPermission.id ? updatedPermission : p)
+    );
+    setEditPermission(null);
+  };
+
+  const handleManageUsersSave = (permissionId: string, userIds: string[]) => {
+    setPermissions(prev => 
+      prev.map(p => 
+        p.id === permissionId 
+          ? { ...p, usersWithPermission: userIds.length }
+          : p
+      )
+    );
+    setManageUsersPermission(null);
+  };
+
+  const handleDeleteConfirm = (permissionId: string) => {
+    setPermissions(prev => prev.filter(p => p.id !== permissionId));
+    setDeletePermission(null);
   };
 
   const filteredPermissions = permissions.filter(permission => {
@@ -146,11 +214,6 @@ const AdminPermissions = () => {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
-            <Shield className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-            <span className="hidden sm:inline">Bulk Update</span>
-            <span className="sm:hidden">Bulk</span>
-          </Button>
           <AddPermissionModal onPermissionAdd={handleAddPermission} />
         </div>
       </div>
@@ -233,80 +296,83 @@ const AdminPermissions = () => {
         <CardContent>
           {/* Desktop Table View */}
           <div className="hidden lg:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Permission</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Users</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Modified</TableHead>
-                  <TableHead>Enabled</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPermissions.map((permission) => (
-                  <TableRow key={permission.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{permission.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {permission.description}
-                        </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Permission</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Users</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Modified</TableHead>
+                <TableHead>Enabled</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredPermissions.map((permission) => (
+                <TableRow key={permission.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{permission.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {permission.description}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getCategoryVariant(permission.category)}>
-                        {permission.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">
-                        {permission.usersWithPermission} users
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {permission.enabled ? (
-                        <div className="flex items-center text-green-600">
-                          <Unlock className="w-4 h-4 mr-1" />
-                          Active
-                        </div>
-                      ) : (
-                        <div className="flex items-center text-red-600">
-                          <Lock className="w-4 h-4 mr-1" />
-                          Disabled
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>{permission.lastModified}</TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={permission.enabled}
-                        onCheckedChange={() => togglePermission(permission.id)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getCategoryVariant(permission.category)}>
+                      {permission.category}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">
+                      {permission.usersWithPermission} users
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    {permission.enabled ? (
+                      <div className="flex items-center text-green-600">
+                        <Unlock className="w-4 h-4 mr-1" />
+                        Active
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-red-600">
+                        <Lock className="w-4 h-4 mr-1" />
+                        Disabled
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>{permission.lastModified}</TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={permission.enabled}
+                      onCheckedChange={() => togglePermission(permission.id)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewPermission(permission)}>
                             <Eye className="w-4 h-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditPermission(permission)}>
                             <Edit className="w-4 h-4 mr-2" />
                             Edit Permission
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleManageUsers(permission)}>
                             <Shield className="w-4 h-4 mr-2" />
                             Manage Users
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleDeletePermission(permission)}
+                          >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Delete
                           </DropdownMenuItem>
@@ -373,19 +439,22 @@ const AdminPermissions = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewPermission(permission)}>
                           <Eye className="w-4 h-4 mr-2" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditPermission(permission)}>
                           <Edit className="w-4 h-4 mr-2" />
                           Edit Permission
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleManageUsers(permission)}>
                           <Shield className="w-4 h-4 mr-2" />
                           Manage Users
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => handleDeletePermission(permission)}
+                        >
                           <Trash2 className="w-4 h-4 mr-2" />
                           Delete
                         </DropdownMenuItem>
@@ -394,10 +463,38 @@ const AdminPermissions = () => {
                   </div>
                 </div>
               </Card>
-            ))}
+              ))}
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal Components */}
+      <ViewPermissionModal
+        permission={viewPermission}
+        isOpen={!!viewPermission}
+        onClose={() => setViewPermission(null)}
+      />
+
+      <EditPermissionModal
+        permission={editPermission}
+        isOpen={!!editPermission}
+        onClose={() => setEditPermission(null)}
+        onSave={handleEditSave}
+      />
+
+      <ManageUsersModal
+        permission={manageUsersPermission}
+        isOpen={!!manageUsersPermission}
+        onClose={() => setManageUsersPermission(null)}
+        onSave={handleManageUsersSave}
+      />
+
+      <DeletePermissionDialog
+        permission={deletePermission}
+        isOpen={!!deletePermission}
+        onClose={() => setDeletePermission(null)}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 };
