@@ -10,6 +10,8 @@ export interface FileItem {
   parentPath?: string;
   owner?: string;
   avatar?: string;
+  content?: string; // Base64 encoded file content
+  mimeType?: string; // MIME type for proper display
 }
 
 const STORAGE_KEY = 'file_manager_data';

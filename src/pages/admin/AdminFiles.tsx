@@ -143,59 +143,77 @@ const AdminFiles = () => {
             status: 'uploading'
           }]);
           
-          // Simulate upload progress
-          let progress = 0;
-          const interval = setInterval(() => {
-            progress += Math.random() * 15;
-            if (progress >= 100) {
-              progress = 100;
-              clearInterval(interval);
-              
-              // Complete upload
-              setUploads(prev => prev.map(upload => 
-                upload.id === uploadId 
-                  ? { ...upload, progress: 100, status: 'completed' as const }
-                  : upload
-              ));
-              
-              // Add file to storage
-          const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
-          let fileType = 'Document';
+          // Read file content
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const fileContent = e.target?.result as string;
+            
+            // Simulate upload progress
+            let progress = 0;
+            const interval = setInterval(() => {
+              progress += Math.random() * 15;
+              if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
+                
+                // Complete upload
+                setUploads(prev => prev.map(upload => 
+                  upload.id === uploadId 
+                    ? { ...upload, progress: 100, status: 'completed' as const }
+                    : upload
+                ));
+                
+                // Add file to storage
+                const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+                let fileType = 'Document';
+                
+                if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+                  fileType = 'Image';
+                } else if (['pdf'].includes(fileExtension)) {
+                  fileType = 'PDF Document';
+                } else if (['doc', 'docx'].includes(fileExtension)) {
+                  fileType = 'Word Document';
+                } else if (['xls', 'xlsx'].includes(fileExtension)) {
+                  fileType = 'Excel Spreadsheet';
+                } else if (['ppt', 'pptx'].includes(fileExtension)) {
+                  fileType = 'PowerPoint Presentation';
+                }
+                
+                addFile({
+                  name: file.name,
+                  type: 'file',
+                  size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+                  fileType,
+                  parentPath: currentPath,
+                  owner: user.name,
+                  avatar: user.avatar,
+                  content: fileContent,
+                  mimeType: file.type,
+                });
+                
+                // Auto-dismiss completed uploads after 3 seconds
+                setTimeout(() => {
+                  setUploads(prev => prev.filter(upload => upload.id !== uploadId));
+                }, 3000);
+              } else {
+                setUploads(prev => prev.map(upload => 
+                  upload.id === uploadId 
+                    ? { ...upload, progress: Math.floor(progress) }
+                    : upload
+                ));
+              }
+            }, 200);
+          };
           
-          if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
-            fileType = 'Image';
-          } else if (['pdf'].includes(fileExtension)) {
-            fileType = 'PDF Document';
-          } else if (['doc', 'docx'].includes(fileExtension)) {
-            fileType = 'Word Document';
-          } else if (['xls', 'xlsx'].includes(fileExtension)) {
-            fileType = 'Excel Spreadsheet';
-          } else if (['ppt', 'pptx'].includes(fileExtension)) {
-            fileType = 'PowerPoint Presentation';
-          }
+          reader.onerror = () => {
+            setUploads(prev => prev.map(upload => 
+              upload.id === uploadId 
+                ? { ...upload, status: 'error' as const, error: 'Failed to read file' }
+                : upload
+            ));
+          };
           
-          addFile({
-            name: file.name,
-            type: 'file',
-            size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-            fileType,
-            parentPath: currentPath,
-            owner: user.name,
-            avatar: user.avatar,
-          });
-              
-              // Auto-dismiss completed uploads after 3 seconds
-              setTimeout(() => {
-                setUploads(prev => prev.filter(upload => upload.id !== uploadId));
-              }, 3000);
-            } else {
-              setUploads(prev => prev.map(upload => 
-                upload.id === uploadId 
-                  ? { ...upload, progress: Math.floor(progress) }
-                  : upload
-              ));
-            }
-          }, 200);
+          reader.readAsDataURL(file);
         });
         
         toast({
@@ -274,59 +292,77 @@ const AdminFiles = () => {
             status: 'uploading'
           }]);
           
-          // Simulate upload progress
-          let progress = 0;
-          const interval = setInterval(() => {
-            progress += Math.random() * 15;
-            if (progress >= 100) {
-              progress = 100;
-              clearInterval(interval);
-              
-              // Complete upload
-              setUploads(prev => prev.map(upload => 
-                upload.id === uploadId 
-                  ? { ...upload, progress: 100, status: 'completed' as const }
-                  : upload
-              ));
-              
-              // Add file to storage
-              const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
-              let fileType = 'Document';
-              
-              if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
-                fileType = 'Image';
-              } else if (['pdf'].includes(fileExtension)) {
-                fileType = 'PDF Document';
-              } else if (['doc', 'docx'].includes(fileExtension)) {
-                fileType = 'Word Document';
-              } else if (['xls', 'xlsx'].includes(fileExtension)) {
-                fileType = 'Excel Spreadsheet';
-              } else if (['ppt', 'pptx'].includes(fileExtension)) {
-                fileType = 'PowerPoint Presentation';
+          // Read file content
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const fileContent = e.target?.result as string;
+            
+            // Simulate upload progress
+            let progress = 0;
+            const interval = setInterval(() => {
+              progress += Math.random() * 15;
+              if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
+                
+                // Complete upload
+                setUploads(prev => prev.map(upload => 
+                  upload.id === uploadId 
+                    ? { ...upload, progress: 100, status: 'completed' as const }
+                    : upload
+                ));
+                
+                // Add file to storage
+                const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+                let fileType = 'Document';
+                
+                if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+                  fileType = 'Image';
+                } else if (['pdf'].includes(fileExtension)) {
+                  fileType = 'PDF Document';
+                } else if (['doc', 'docx'].includes(fileExtension)) {
+                  fileType = 'Word Document';
+                } else if (['xls', 'xlsx'].includes(fileExtension)) {
+                  fileType = 'Excel Spreadsheet';
+                } else if (['ppt', 'pptx'].includes(fileExtension)) {
+                  fileType = 'PowerPoint Presentation';
+                }
+                
+                addFile({
+                  name: fileName,
+                  type: 'file',
+                  size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+                  fileType,
+                  parentPath: parentFolderPath,
+                  owner: user.name,
+                  avatar: user.avatar,
+                  content: fileContent,
+                  mimeType: file.type,
+                });
+                
+                // Auto-dismiss completed uploads after 3 seconds
+                setTimeout(() => {
+                  setUploads(prev => prev.filter(upload => upload.id !== uploadId));
+                }, 3000);
+              } else {
+                setUploads(prev => prev.map(upload => 
+                  upload.id === uploadId 
+                    ? { ...upload, progress: Math.floor(progress) }
+                    : upload
+                ));
               }
-              
-              addFile({
-                name: fileName,
-                type: 'file',
-                size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-                fileType,
-                parentPath: parentFolderPath,
-                owner: user.name,
-                avatar: user.avatar,
-              });
-              
-              // Auto-dismiss completed uploads after 3 seconds
-              setTimeout(() => {
-                setUploads(prev => prev.filter(upload => upload.id !== uploadId));
-              }, 3000);
-            } else {
-              setUploads(prev => prev.map(upload => 
-                upload.id === uploadId 
-                  ? { ...upload, progress: Math.floor(progress) }
-                  : upload
-              ));
-            }
-          }, 200);
+            }, 200);
+          };
+          
+          reader.onerror = () => {
+            setUploads(prev => prev.map(upload => 
+              upload.id === uploadId 
+                ? { ...upload, status: 'error' as const, error: 'Failed to read file' }
+                : upload
+            ));
+          };
+          
+          reader.readAsDataURL(file);
         });
         
         const totalFolders = createdFolders.size;
@@ -374,22 +410,32 @@ const AdminFiles = () => {
       return;
     }
 
-    // Create a simple text file for demo purposes
-    const content = `This is a demo file: ${file.name}\nFile type: ${file.fileType || 'Unknown'}\nSize: ${file.size || 'Unknown'}\nModified: ${file.modified}`;
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    
-    // Create a temporary download link
-    const element = document.createElement('a');
-    element.href = url;
-    element.download = file.name;
-    element.style.display = 'none';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    
-    // Clean up the URL object
-    URL.revokeObjectURL(url);
+    if (file.content) {
+      // Create a temporary download link using the actual file content
+      const element = document.createElement('a');
+      element.href = file.content;
+      element.download = file.name;
+      element.style.display = 'none';
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+    } else {
+      // Fallback for files without content
+      const content = `This is a demo file: ${file.name}\nFile type: ${file.fileType || 'Unknown'}\nSize: ${file.size || 'Unknown'}\nModified: ${file.modified}`;
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      
+      const element = document.createElement('a');
+      element.href = url;
+      element.download = file.name;
+      element.style.display = 'none';
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      
+      // Clean up the URL object
+      URL.revokeObjectURL(url);
+    }
 
     toast({
       title: "Download started",

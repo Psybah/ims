@@ -74,46 +74,53 @@ const AdminDashboard: React.FC = () => {
             status: 'uploading'
           }]);
           
-          // Simulate upload progress
-          let progress = 0;
-          const interval = setInterval(() => {
-            progress += Math.random() * 15;
-            if (progress >= 100) {
-              progress = 100;
-              clearInterval(interval);
-              
-              // Complete upload
-              setUploads(prev => prev.map(upload => 
-                upload.id === uploadId 
-                  ? { ...upload, progress: 100, status: 'completed' as const }
-                  : upload
-              ));
-              
-              // Add file to storage
-              const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
-              let fileType = 'Document';
-              
-              if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
-                fileType = 'Image';
-              } else if (['pdf'].includes(fileExtension)) {
-                fileType = 'PDF Document';
-              } else if (['doc', 'docx'].includes(fileExtension)) {
-                fileType = 'Word Document';
-              } else if (['xls', 'xlsx'].includes(fileExtension)) {
-                fileType = 'Excel Spreadsheet';
-              } else if (['ppt', 'pptx'].includes(fileExtension)) {
-                fileType = 'PowerPoint Presentation';
-              }
-              
-              addFile({
-                name: file.name,
-                type: 'file',
-                size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-                fileType,
-                parentPath: '',
-                owner: user.name,
-                avatar: user.avatar,
-              });
+          // Read file content
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const fileContent = e.target?.result as string;
+            
+            // Simulate upload progress
+            let progress = 0;
+            const interval = setInterval(() => {
+              progress += Math.random() * 15;
+              if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
+                
+                // Complete upload
+                setUploads(prev => prev.map(upload => 
+                  upload.id === uploadId 
+                    ? { ...upload, progress: 100, status: 'completed' as const }
+                    : upload
+                ));
+                
+                // Add file to storage
+                const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+                let fileType = 'Document';
+                
+                if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+                  fileType = 'Image';
+                } else if (['pdf'].includes(fileExtension)) {
+                  fileType = 'PDF Document';
+                } else if (['doc', 'docx'].includes(fileExtension)) {
+                  fileType = 'Word Document';
+                } else if (['xls', 'xlsx'].includes(fileExtension)) {
+                  fileType = 'Excel Spreadsheet';
+                } else if (['ppt', 'pptx'].includes(fileExtension)) {
+                  fileType = 'PowerPoint Presentation';
+                }
+                
+                addFile({
+                  name: file.name,
+                  type: 'file',
+                  size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+                  fileType,
+                  parentPath: '',
+                  owner: user.name,
+                  avatar: user.avatar,
+                  content: fileContent,
+                  mimeType: file.type,
+                });
               
               // Auto-dismiss completed uploads after 3 seconds
               setTimeout(() => {
@@ -127,6 +134,17 @@ const AdminDashboard: React.FC = () => {
               ));
             }
           }, 200);
+          };
+          
+          reader.onerror = () => {
+            setUploads(prev => prev.map(upload => 
+              upload.id === uploadId 
+                ? { ...upload, status: 'error' as const, error: 'Failed to read file' }
+                : upload
+            ));
+          };
+          
+          reader.readAsDataURL(file);
         });
         
         toast({
@@ -210,46 +228,53 @@ const AdminDashboard: React.FC = () => {
             status: 'uploading'
           }]);
           
-          // Simulate upload progress
-          let progress = 0;
-          const interval = setInterval(() => {
-            progress += Math.random() * 15;
-            if (progress >= 100) {
-              progress = 100;
-              clearInterval(interval);
-              
-              // Complete upload
-              setUploads(prev => prev.map(upload => 
-                upload.id === uploadId 
-                  ? { ...upload, progress: 100, status: 'completed' as const }
-                  : upload
-              ));
-              
-              // Add file to storage
-              const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
-              let fileType = 'Document';
-              
-              if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
-                fileType = 'Image';
-              } else if (['pdf'].includes(fileExtension)) {
-                fileType = 'PDF Document';
-              } else if (['doc', 'docx'].includes(fileExtension)) {
-                fileType = 'Word Document';
-              } else if (['xls', 'xlsx'].includes(fileExtension)) {
-                fileType = 'Excel Spreadsheet';
-              } else if (['ppt', 'pptx'].includes(fileExtension)) {
-                fileType = 'PowerPoint Presentation';
-              }
-              
-              addFile({
-                name: fileName,
-                type: 'file',
-                size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-                fileType,
-                parentPath: parentFolderPath,
-                owner: user.name,
-                avatar: user.avatar,
-              });
+          // Read file content
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const fileContent = e.target?.result as string;
+            
+            // Simulate upload progress
+            let progress = 0;
+            const interval = setInterval(() => {
+              progress += Math.random() * 15;
+              if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
+                
+                // Complete upload
+                setUploads(prev => prev.map(upload => 
+                  upload.id === uploadId 
+                    ? { ...upload, progress: 100, status: 'completed' as const }
+                    : upload
+                ));
+                
+                // Add file to storage
+                const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+                let fileType = 'Document';
+                
+                if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+                  fileType = 'Image';
+                } else if (['pdf'].includes(fileExtension)) {
+                  fileType = 'PDF Document';
+                } else if (['doc', 'docx'].includes(fileExtension)) {
+                  fileType = 'Word Document';
+                } else if (['xls', 'xlsx'].includes(fileExtension)) {
+                  fileType = 'Excel Spreadsheet';
+                } else if (['ppt', 'pptx'].includes(fileExtension)) {
+                  fileType = 'PowerPoint Presentation';
+                }
+                
+                addFile({
+                  name: fileName,
+                  type: 'file',
+                  size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+                  fileType,
+                  parentPath: parentFolderPath,
+                  owner: user.name,
+                  avatar: user.avatar,
+                  content: fileContent,
+                  mimeType: file.type,
+                });
               
               // Auto-dismiss completed uploads after 3 seconds
               setTimeout(() => {
@@ -263,6 +288,17 @@ const AdminDashboard: React.FC = () => {
               ));
             }
           }, 200);
+          };
+          
+          reader.onerror = () => {
+            setUploads(prev => prev.map(upload => 
+              upload.id === uploadId 
+                ? { ...upload, status: 'error' as const, error: 'Failed to read file' }
+                : upload
+            ));
+          };
+          
+          reader.readAsDataURL(file);
         });
         
         const totalFolders = createdFolders.size;
