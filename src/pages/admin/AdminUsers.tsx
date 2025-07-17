@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,17 +34,17 @@ import { AddUserModal } from '@/components/AddUserModal';
 import { EditUserModal } from '@/components/EditUserModal';
 import { ChangeRoleModal } from '@/components/ChangeRoleModal';
 import { FilterModal } from '@/components/FilterModal';
+import { apiV1 } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface User {
   id: string;
-  name: string;
+  fullName: string;
   email: string;
   role: string;
-  status: string;
-  lastLogin: string;
-  filesCount: number;
-  storageUsed: string;
-  avatar: string;
+  phoneNumber: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface FilterState {
@@ -52,86 +52,64 @@ interface FilterState {
   role?: string[];
 }
 
-// Mock data for demonstration
-const mockUsers: User[] = [
-  {
-    id: '1',
-    name: 'John Doe',
-    email: 'john.doe@company.com',
-    role: 'Admin',
-    status: 'Active',
-    lastLogin: '2024-01-15',
-    filesCount: 12,
-    storageUsed: '45.2 MB',
-    avatar: '/placeholder.svg'
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    email: 'jane.smith@company.com',
-    role: 'User',
-    status: 'Active',
-    lastLogin: '2024-01-14',
-    filesCount: 8,
-    storageUsed: '23.1 MB',
-    avatar: '/placeholder.svg'
-  },
-  {
-    id: '3',
-    name: 'Mike Johnson',
-    email: 'mike.johnson@company.com',
-    role: 'User',
-    status: 'Inactive',
-    lastLogin: '2024-01-10',
-    filesCount: 15,
-    storageUsed: '67.8 MB',
-    avatar: '/placeholder.svg'
-  },
-  {
-    id: '4',
-    name: 'Sarah Wilson',
-    email: 'sarah.wilson@company.com',
-    role: 'Moderator',
-    status: 'Active',
-    lastLogin: '2024-01-15',
-    filesCount: 6,
-    storageUsed: '18.4 MB',
-    avatar: '/placeholder.svg'
-  },
-];
-
 const AdminUsers = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
-
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [filters, setFilters] = useState<FilterState>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await apiV1.get('/users');
+      setUsers(response.data.data.users);
+    } catch (err: any) {
+      console.error("Failed to fetch users:", err);
+      setError(err);
+      setUsers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const handleAddUser = (newUser: User) => {
     setUsers(prev => [...prev, newUser]);
+    fetchUsers(); // Refresh list after adding user
   };
 
   const handleEditUser = (userId: string, updatedUser: Partial<User>) => {
     setUsers(prev => prev.map(user => 
       user.id === userId ? { ...user, ...updatedUser } : user
     ));
+    fetchUsers(); // Refresh list after editing user
   };
 
   const handleChangeRole = (userId: string, newRole: string) => {
     setUsers(prev => prev.map(user => 
       user.id === userId ? { ...user, role: newRole } : user
     ));
+    fetchUsers(); // Refresh list after changing role
   };
 
   const handleSuspendUser = (userId: string) => {
-    setUsers(prev => prev.map(user => 
-      user.id === userId 
-        ? { ...user, status: user.status === 'Active' ? 'Suspended' : 'Active' }
-        : user
-    ));
+    // This functionality is not directly supported by the backend API as per backend-documentation.md
+    // You might need to implement a separate API endpoint for this or handle it client-side if it's just a UI state.
+    toast({
+      title: "Action Not Supported",
+      description: "Suspending/Activating users is not directly supported by the current API. Please implement a backend endpoint for this.",
+      variant: "destructive",
+    });
   };
 
   const handleFilterApply = (newFilters: FilterState) => {
@@ -139,37 +117,32 @@ const AdminUsers = () => {
   };
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = !filters.status?.length || filters.status.includes(user.status);
+    // The backend API does not provide a 'status' field for users, only 'role'.
+    // Filtering by status will not work as expected with the current backend.
+    const matchesStatus = true; // Assuming all users are 'Active' from backend perspective
     const matchesRole = !filters.role?.length || filters.role.includes(user.role);
     return matchesSearch && matchesStatus && matchesRole;
   });
 
   const getRoleVariant = (role: string) => {
     switch (role) {
-      case 'Admin':
+      case 'SUPER_ADMIN':
         return 'destructive';
-      case 'Moderator':
+      case 'ADMIN':
         return 'default';
-      case 'User':
+      case 'MEMBER':
         return 'secondary';
       default:
         return 'outline';
     }
   };
 
+  // The backend API does not provide a 'status' field for users.
+  // This function will always return 'default' for now.
   const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'default';
-      case 'Inactive':
-        return 'secondary';
-      case 'Suspended':
-        return 'destructive';
-      default:
-        return 'outline';
-    }
+    return 'default';
   };
 
   return (
@@ -206,10 +179,11 @@ const AdminUsers = () => {
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-bold">
-              {users.filter(u => u.status === 'Active').length}
+              {/* Assuming all fetched users are active as per backend API */}
+              {users.length}
             </div>
             <p className="text-xs text-muted-foreground">
-              {Math.round((users.filter(u => u.status === 'Active').length / users.length) * 100)}% of total
+              100% of total (based on API data)
             </p>
           </CardContent>
         </Card>
@@ -220,7 +194,7 @@ const AdminUsers = () => {
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-bold">
-              {users.filter(u => u.role === 'Admin').length}
+              {users.filter(u => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN').length}
             </div>
             <p className="text-xs text-muted-foreground">
               Administrative access
@@ -229,15 +203,15 @@ const AdminUsers = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Inactive</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Members</CardTitle>
             <UserX className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-bold">
-              {users.filter(u => u.status === 'Inactive').length}
+              {users.filter(u => u.role === 'MEMBER').length}
             </div>
             <p className="text-xs text-muted-foreground">
-              Need attention
+              Standard users
             </p>
           </CardContent>
         </Card>
@@ -262,8 +236,9 @@ const AdminUsers = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Empty State */}
-          {filteredUsers.length === 0 && (
+          {isLoading && <div className="p-4 text-center text-muted-foreground">Loading users...</div>}
+          {error && <div className="p-4 text-center text-destructive">Error loading users: {error.message}</div>}
+          {!isLoading && !error && filteredUsers.length === 0 && (
             <EmptyState
               icon={Users}
               title="No users found"
@@ -281,7 +256,7 @@ const AdminUsers = () => {
           )}
 
           {/* Desktop Table View */}
-          {filteredUsers.length > 0 && (
+          {!isLoading && !error && filteredUsers.length > 0 && (
             <div className="hidden lg:block">
               <Table>
                 <TableHeader>
@@ -289,9 +264,7 @@ const AdminUsers = () => {
                     <TableHead>User</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Last Login</TableHead>
-                    <TableHead>Files</TableHead>
-                    <TableHead>Storage Used</TableHead>
+                    <TableHead>Created At</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -303,11 +276,11 @@ const AdminUsers = () => {
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={user.avatar} />
                           <AvatarFallback>
-                            {user.name.split(' ').map(n => n[0]).join('')}
+                            {user.fullName.split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium">{user.name}</div>
+                          <div className="font-medium">{user.fullName}</div>
                           <div className="text-sm text-muted-foreground">{user.email}</div>
                         </div>
                       </div>
@@ -318,13 +291,11 @@ const AdminUsers = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusVariant(user.status)}>
-                        {user.status}
+                      <Badge variant={getStatusVariant('Active')}>
+                        Active
                       </Badge>
                     </TableCell>
-                    <TableCell>{user.lastLogin}</TableCell>
-                    <TableCell>{user.filesCount}</TableCell>
-                    <TableCell>{user.storageUsed}</TableCell>
+                    <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -345,21 +316,12 @@ const AdminUsers = () => {
                           }}>
                             Change Role
                           </DropdownMenuItem>
-                          {user.status === 'Active' ? (
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => handleSuspendUser(user.id)}
-                            >
-                              Suspend User
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem 
-                              className="text-green-600"
-                              onClick={() => handleSuspendUser(user.id)}
-                            >
-                              Activate User
-                            </DropdownMenuItem>
-                          )}
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleSuspendUser(user.id)}
+                          >
+                            Suspend User (Not Implemented)
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -371,7 +333,7 @@ const AdminUsers = () => {
             )}
 
             {/* Mobile Card View */}
-            {filteredUsers.length > 0 && (
+            {!isLoading && !error && filteredUsers.length > 0 && (
               <div className="lg:hidden space-y-3">
             {filteredUsers.map((user) => (
               <Card key={user.id} className="p-3">
@@ -379,13 +341,13 @@ const AdminUsers = () => {
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={user.avatar} />
                     <AvatarFallback>
-                      {user.name.split(' ').map(n => n[0]).join('')}
+                      {user.fullName.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-medium text-sm truncate">{user.name}</h3>
+                      <h3 className="font-medium text-sm truncate">{user.fullName}</h3>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">
@@ -405,21 +367,12 @@ const AdminUsers = () => {
                           }}>
                             Change Role
                           </DropdownMenuItem>
-                          {user.status === 'Active' ? (
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => handleSuspendUser(user.id)}
-                            >
-                              Suspend User
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem 
-                              className="text-green-600"
-                              onClick={() => handleSuspendUser(user.id)}
-                            >
-                              Activate User
-                            </DropdownMenuItem>
-                          )}
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleSuspendUser(user.id)}
+                          >
+                            Suspend User (Not Implemented)
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -433,19 +386,18 @@ const AdminUsers = () => {
                         <Badge variant={getRoleVariant(user.role)} className="text-xs">
                           {user.role}
                         </Badge>
-                        <Badge variant={getStatusVariant(user.status)} className="text-xs">
-                          {user.status}
+                        <Badge variant={getStatusVariant('Active')} className="text-xs">
+                          Active
                         </Badge>
                       </div>
                       
                       <div className="flex items-center space-x-3 text-xs text-muted-foreground">
-                        <span>{user.filesCount} files</span>
-                        <span>{user.storageUsed}</span>
+                        {/* Files and Storage not available from backend */}
                       </div>
                     </div>
                     
                     <div className="mt-2 text-xs text-muted-foreground">
-                      Last login: {user.lastLogin}
+                      Created At: {new Date(user.createdAt).toLocaleDateString()}
                     </div>
                   </div>
                 </div>
@@ -464,7 +416,7 @@ const AdminUsers = () => {
       />
       <ChangeRoleModal 
         open={isRoleModalOpen}
-        onOpenChange={setIsRoleModalOpen}
+        onOpenChange={setIsRoleModalChangeRole}
         user={selectedUser}
         onRoleChange={handleChangeRole}
       />

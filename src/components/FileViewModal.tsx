@@ -2,6 +2,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Download, 
   Edit, 
@@ -11,19 +13,14 @@ import {
   Image,
   FileSpreadsheet,
   Presentation,
-  AlertCircle
+  AlertCircle,
+  ExternalLink,
+  Save,
+  X
 } from 'lucide-react';
-
-interface FileItem {
-  id: string;
-  name: string;
-  type: 'folder' | 'file';
-  size?: string;
-  modified: string;
-  fileType?: string;
-  content?: string;
-  mimeType?: string;
-}
+import { FileItem } from '@/lib/types';
+import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 interface FileViewModalProps {
   file: FileItem | null;
@@ -54,92 +51,148 @@ const getFileTypeColor = (fileType: string = '') => {
 };
 
 const FilePreview = ({ file }: { file: FileItem }) => {
-  if (!file.content) {
-    return (
-      <div className="flex items-center justify-center h-64 bg-muted/30 rounded-lg">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">No preview available</p>
-          <p className="text-xs text-muted-foreground mt-1">Use the download button to view this file</p>
-        </div>
-      </div>
-    );
-  }
-
   const fileType = file.fileType?.toLowerCase() || '';
   const mimeType = file.mimeType || '';
 
-  // Images
+  // Images - use webViewLink for preview, webContentLink for download
   if (mimeType.startsWith('image/') || fileType.includes('image')) {
     return (
       <div className="flex items-center justify-center bg-muted/30 rounded-lg p-4">
-        <img 
-          src={file.content} 
-          alt={file.name}
-          className="max-w-full max-h-96 object-contain rounded-lg shadow-sm"
-        />
+        {file.webViewLink ? (
+          <iframe 
+            src={file.webViewLink}
+            className="w-full h-96 border-0 rounded-lg"
+            title={file.name}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+            }}
+          />
+        ) : (
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Image preview not available</p>
+            {file.webContentLink && (
+              <Button 
+                onClick={() => window.open(file.webContentLink, '_blank')} 
+                variant="outline" 
+                size="sm"
+                className="mt-2"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Image
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     );
   }
 
-  // PDFs
+  // PDFs - use webViewLink for preview
   if (mimeType === 'application/pdf' || fileType.includes('pdf')) {
     return (
       <div className="h-96 bg-muted/30 rounded-lg overflow-hidden">
-        <iframe 
-          src={file.content}
-          className="w-full h-full border-0"
-          title={file.name}
-        />
-      </div>
-    );
-  }
-
-  // Text files
-  if (mimeType.startsWith('text/') || fileType.includes('text')) {
-    try {
-      const textContent = atob(file.content.split(',')[1] || file.content);
-      return (
-        <ScrollArea className="h-96 bg-muted/30 rounded-lg p-4">
-          <pre className="text-sm whitespace-pre-wrap font-mono">{textContent}</pre>
-        </ScrollArea>
-      );
-    } catch (error) {
-      return (
-        <div className="flex items-center justify-center h-64 bg-muted/30 rounded-lg">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">Unable to display text content</p>
+        {file.webViewLink ? (
+          <iframe 
+            src={file.webViewLink}
+            className="w-full h-full border-0"
+            title={file.name}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">PDF preview not available</p>
+              {file.webContentLink && (
+                <Button 
+                  onClick={() => window.open(file.webContentLink, '_blank')} 
+                  variant="outline" 
+                  size="sm"
+                  className="mt-2"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
-      );
-    }
-  }
-
-  // Office documents
-  if (fileType.includes('word') || fileType.includes('excel') || fileType.includes('powerpoint') || 
-      fileType.includes('spreadsheet') || fileType.includes('presentation')) {
-    return (
-      <div className="flex items-center justify-center h-64 bg-muted/30 rounded-lg">
-        <div className="text-center">
-          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Preview not available for Office documents</p>
-          <p className="text-xs text-muted-foreground mt-1">Download the file to view its contents</p>
-        </div>
+        )}
       </div>
     );
   }
 
-  // Default fallback
+  // Text files - try to fetch content from webContentLink
+  if (mimeType.startsWith('text/') || fileType.includes('text') || fileType.includes('json') || fileType.includes('xml') || fileType.includes('csv')) {
+    return (
+      <ScrollArea className="h-96 bg-muted/30 rounded-lg p-4">
+        <pre className="text-sm whitespace-pre-wrap font-mono">
+          <TextFileViewer url={file.webContentLink} />
+        </pre>
+      </ScrollArea>
+    );
+  }
+
+  // Office documents and other files
   return (
     <div className="flex items-center justify-center h-64 bg-muted/30 rounded-lg">
       <div className="text-center">
-        <File className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
         <p className="text-sm text-muted-foreground">Preview not available for this file type</p>
         <p className="text-xs text-muted-foreground mt-1">Download the file to view its contents</p>
+        <div className="flex flex-col space-y-2 mt-3">
+          {file.webContentLink && (
+            <Button 
+              onClick={() => window.open(file.webContentLink, '_blank')} 
+              variant="outline" 
+              size="sm"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download File
+            </Button>
+          )}
+          {file.webViewLink && (
+            <Button 
+              onClick={() => window.open(file.webViewLink, '_blank')} 
+              variant="outline" 
+              size="sm"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open in Google Drive
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
+};
+
+// Component to fetch and display text file content
+const TextFileViewer = ({ url }: { url?: string }) => {
+  const [content, setContent] = useState<string>('Loading...');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!url) {
+      setContent('No URL available');
+      return;
+    }
+
+    fetch(url)
+      .then(response => response.text())
+      .then(text => setContent(text))
+      .catch(err => {
+        console.error('Failed to fetch text content:', err);
+        setError('Failed to load text content');
+        setContent('Error loading content');
+      });
+  }, [url]);
+
+  if (error) {
+    return <span className="text-red-500">{error}</span>;
+  }
+
+  return <span>{content}</span>;
 };
 
 export function FileViewModal({ 
@@ -150,9 +203,45 @@ export function FileViewModal({
   onEdit, 
   onDelete 
 }: FileViewModalProps) {
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [newFileName, setNewFileName] = useState('');
+  const { toast } = useToast();
+
   if (!file) return null;
 
   const FileIcon = getFileIcon(file.fileType);
+
+  const handleRename = () => {
+    if (!newFileName.trim()) {
+      toast({
+        title: "Invalid name",
+        description: "File name cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // TODO: Implement backend rename API call here
+    // For now, show a message that its not implemented
+    toast({
+      title: "Rename not implemented",
+      description: "File rename functionality is not yet supported by the backend.",
+      variant: "destructive",
+    });
+    
+    setIsRenaming(false);
+    setNewFileName('');
+  };
+
+  const startRename = () => {
+    setNewFileName(file.name);
+    setIsRenaming(true);
+  };
+
+  const cancelRename = () => {
+    setIsRenaming(false);
+    setNewFileName('');
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -168,15 +257,40 @@ export function FileViewModal({
               <FileIcon className="h-8 w-8 text-muted-foreground" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-medium">{file.name}</h3>
-              <div className="flex items-center space-x-2 mt-1">
-                {file.fileType && (
-                  <Badge variant="secondary" className={getFileTypeColor(file.fileType)}>
-                    {file.fileType}
-                  </Badge>
-                )}
-                <span className="text-sm text-muted-foreground">{file.size || 'Unknown size'}</span>
-              </div>
+              {isRenaming ? (
+                <div className="space-y-2">
+                  <Label htmlFor="newFileName" className="text-sm font-medium">New file name:</Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      id="newFileName"
+                      value={newFileName}
+                      onChange={(e) => setNewFileName(e.target.value)}
+                      className="flex-1"
+                      autoFocus
+                    />
+                    <Button onClick={handleRename} size="sm">
+                      <Save className="h-4 w-4 mr-1" />
+                      Save
+                    </Button>
+                    <Button onClick={cancelRename} variant="outline" size="sm">
+                      <X className="h-4 w-4 mr-1" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h3 className="text-lg font-medium">{file.name}</h3>
+                  <div className="flex items-center space-x-2 mt-1">
+                    {file.fileType && (
+                      <Badge variant="secondary" className={getFileTypeColor(file.fileType)}>
+                        {file.fileType}
+                      </Badge>
+                    )}
+                    <span className="text-sm text-muted-foreground">{file.size || 'Unknown size'}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -212,7 +326,17 @@ export function FileViewModal({
                 <Download className="h-4 w-4 mr-2" />
                 Download
               </Button>
-              <Button onClick={() => onEdit(file)} variant="outline" size="sm">
+              {file.webViewLink && (
+                <Button 
+                  onClick={() => window.open(file.webViewLink, '_blank')} 
+                  variant="outline" 
+                  size="sm"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View in Google Drive
+                </Button>
+              )}
+              <Button onClick={startRename} variant="outline" size="sm">
                 <Edit className="h-4 w-4 mr-2" />
                 Rename
               </Button>

@@ -2,9 +2,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
+import { SignupForm } from "@/components/SignupForm";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminFiles from "./pages/admin/AdminFiles";
@@ -24,7 +25,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.Re
   const { user } = useAuth();
   
   if (!user) {
-    return <LoginForm />;
+    return <Navigate to="/" replace />;
   }
   
   if (requireAdmin && user.role !== 'admin') {
@@ -37,65 +38,70 @@ const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.Re
 const AppRoutes = () => {
   const { user } = useAuth();
   
-  if (!user) {
-    return <LoginForm />;
-  }
-  
   return (
     <Routes>
-      {/* User Routes */}
-      <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <UserDashboard />
-        </ProtectedRoute>
-      } />
-      <Route path="/files" element={
-        <ProtectedRoute>
-          <UserFiles />
-        </ProtectedRoute>
-      } />
-      
-      {/* Admin Routes */}
-      <Route path="/admin/dashboard" element={
-        <ProtectedRoute requireAdmin>
-          <AdminDashboard />
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/files" element={
-        <ProtectedRoute requireAdmin>
-          <AdminFiles />
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/users" element={
-        <ProtectedRoute requireAdmin>
-          <AdminUsers />
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/permissions" element={
-        <ProtectedRoute requireAdmin>
-          <AdminPermissions />
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/trash" element={
-        <ProtectedRoute requireAdmin>
-          <AdminTrash />
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/organization" element={
-        <ProtectedRoute requireAdmin>
-          <AdminOrganization />
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/settings" element={
-        <ProtectedRoute requireAdmin>
-          <AdminSettings />
-        </ProtectedRoute>
-      } />
-      
-      {/* Redirect root to appropriate dashboard */}
-      <Route path="/" element={
-        <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/dashboard'} replace />
-      } />
+      {user ? (
+        <>
+          {/* User Routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <UserDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/files" element={
+            <ProtectedRoute>
+              <UserFiles />
+            </ProtectedRoute>
+          } />
+          
+          {/* Admin Routes */}
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute requireAdmin>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/files" element={
+            <ProtectedRoute requireAdmin>
+              <AdminFiles />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/users" element={
+            <ProtectedRoute requireAdmin>
+              <AdminUsers />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/permissions" element={
+            <ProtectedRoute requireAdmin>
+              <AdminPermissions />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/trash" element={
+            <ProtectedRoute requireAdmin>
+              <AdminTrash />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/organization" element={
+            <ProtectedRoute requireAdmin>
+              <AdminOrganization />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/settings" element={
+            <ProtectedRoute requireAdmin>
+              <AdminSettings />
+            </ProtectedRoute>
+          } />
+          
+          {/* Redirect root to appropriate dashboard */}
+          <Route path="/" element={
+            <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/dashboard'} replace />
+          } />
+        </>
+      ) : (
+        <>
+          <Route path="/" element={<LoginForm />} />
+          <Route path="/signup" element={<SignupForm />} />
+        </>
+      )}
       
       {/* 404 Route */}
       <Route path="*" element={<NotFound />} />
@@ -108,11 +114,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
+      <AppRoutes />
     </TooltipProvider>
   </QueryClientProvider>
 );

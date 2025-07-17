@@ -27,11 +27,21 @@ import {
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { FileViewModal } from '@/components/FileViewModal';
 import { useToast } from '@/hooks/use-toast';
-import { useFileStorage, type FileItem } from '@/hooks/useFileStorage';
+import { useAuth } from '@/contexts/AuthContext';
+import { FileItem, BreadcrumbItem } from '@/lib/types';
+import {
+  useCreateFolder,
+  useUploadFile,
+  useUploadFolder,
+  useDeleteFileOrFolder
+} from '@/hooks/useFiles';
+import { FileList } from '@/components/FileList';
+import { FileToolbar } from '@/components/FileToolbar';
+import { FileSearchSort } from '@/components/FileSearchSort';
+import { useFilesQuery } from '@/hooks/useFilesQuery';
 
 const getFileIcon = (item: FileItem) => {
   if (item.type === 'folder') return Folder;
-  
   const fileType = item.fileType?.toLowerCase() || '';
   if (fileType.includes('pdf')) return FileText;
   if (fileType.includes('image') || fileType.includes('jpg') || fileType.includes('png')) return Image;
@@ -42,45 +52,70 @@ const getFileIcon = (item: FileItem) => {
 
 const UserFiles = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPath, setCurrentPath] = useState('');
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [currentPath, setCurrentPath] = useState<BreadcrumbItem[]>([{ name: 'Root', id: null }]);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { toast } = useToast();
+  const { token } = useAuth();
+  const { data: items = [], isLoading, error } = useFilesQuery(currentFolderId);
   const [sortBy, setSortBy] = useState<'name' | 'modified' | 'size'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const { toast } = useToast();
-  const { files, addFile, addFolder, deleteFile, sortFiles } = useFileStorage();
 
-  // Filter files based on current path and search term
-  const filteredFiles = files.filter(file => {
-    const matchesPath = file.parentPath === currentPath;
-    const matchesSearch = file.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesPath && matchesSearch;
-  });
+  const createFolder = useCreateFolder();
+  const uploadFile = useUploadFile();
+  const uploadFolder = useUploadFolder();
+  const deleteFileOrFolder = useDeleteFileOrFolder();
 
-  // Sort the filtered files
-  const sortedFiles = sortFiles(filteredFiles, sortBy, sortOrder);
+  // ...fetchItems logic will be replaced with useFilesQuery in next step
 
-  // Get breadcrumb items
-  const getBreadcrumbItems = () => {
-    if (!currentPath) return [];
-    const pathParts = currentPath.split('/').filter(Boolean);
-    return pathParts.map((part, index) => ({
-      name: part,
-      path: pathParts.slice(0, index + 1).join('/')
-    }));
+  const filteredItems = items.filter(item =>
+    item.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false
+  );
+
+  const sortItems = (itemsToSort: FileItem[], sortByKey: 'name' | 'modified' | 'size', sortOrderKey: 'asc' | 'desc') => {
+    return [...itemsToSort].sort((a, b) => {
+      if (sortByKey === 'name') {
+        return sortOrderKey === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+      } else if (sortByKey === 'modified') {
+        const dateA = new Date(a.updatedAt).getTime();
+        const dateB = new Date(b.updatedAt).getTime();
+        return sortOrderKey === 'asc' ? dateA - dateB : dateB - dateA;
+      } else if (sortByKey === 'size') {
+        const sizeA = a.fileSize || 0;
+        const sizeB = b.fileSize || 0;
+        return sortOrderKey === 'asc' ? sizeA - sizeB : sizeB - sizeA;
+      }
+      return 0;
+    });
   };
 
-  const handleNavigate = (path: string) => {
-    setCurrentPath(path);
+  const sortedItems = sortItems(filteredItems, sortBy, sortOrder);
+
+  const handleNavigate = (pathId: string) => {
+    if (pathId === '/' || pathId === '') {
+      setCurrentFolderId(null);
+      setCurrentPath([{ name: 'Root', id: null }]);
+    } else {
+      const clickedIndex = currentPath.findIndex(item => item.id === pathId);
+      if (clickedIndex !== -1) {
+        setCurrentPath(currentPath.slice(0, clickedIndex + 1));
+        setCurrentFolderId(pathId);
+      }
+    }
     setSearchTerm('');
   };
 
   const handleItemClick = (item: FileItem) => {
     if (item.type === 'folder') {
-      const newPath = currentPath ? `${currentPath}/${item.name}` : item.name;
-      setCurrentPath(newPath);
+      setCurrentFolderId(item.id);
+      setCurrentPath([...currentPath, { name: item.name, id: item.id }]);
     } else {
-      setSelectedFile(item);
+      setSelectedFile({
+        ...item,
+        size: item.fileSize ? `${(item.fileSize / 1024).toFixed(2)} KB` : undefined,
+        modified: item.updatedAt || '',
+      });
       setIsModalOpen(true);
     }
   };
@@ -89,44 +124,28 @@ const UserFiles = () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.multiple = true;
-    input.webkitdirectory = false;
-    input.accept = '*/*';
-    
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const uploadedFiles = Array.from((e.target as HTMLInputElement).files || []);
       if (uploadedFiles.length > 0) {
-        uploadedFiles.forEach(file => {
-          const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
-          let fileType = 'Document';
-          
-          if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
-            fileType = 'Image';
-          } else if (['pdf'].includes(fileExtension)) {
-            fileType = 'PDF Document';
-          } else if (['doc', 'docx'].includes(fileExtension)) {
-            fileType = 'Word Document';
-          } else if (['xls', 'xlsx'].includes(fileExtension)) {
-            fileType = 'Excel Spreadsheet';
-          } else if (['ppt', 'pptx'].includes(fileExtension)) {
-            fileType = 'PowerPoint Presentation';
+        let successCount = 0;
+        let errorCount = 0;
+        for (const file of uploadedFiles) {
+          try {
+            await uploadFile.mutateAsync({ file, parentId: currentFolderId || undefined });
+            successCount++;
+          } catch (error) {
+            errorCount++;
           }
-          
-          addFile({
-            name: file.name,
-            type: 'file',
-            size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-            fileType,
-            parentPath: currentPath,
-          });
-        });
-        
-        toast({
-          title: "Files uploaded successfully",
-          description: `${uploadedFiles.length} file(s) uploaded to ${currentPath || 'root'} folder.`,
-        });
+        }
+        if (successCount > 0 && errorCount === 0) {
+          toast({ title: "Upload successful", description: `Successfully uploaded ${successCount} file${successCount > 1 ? 's' : ''}.` });
+        } else if (successCount > 0 && errorCount > 0) {
+          toast({ title: "Partial upload", description: `Uploaded ${successCount} file${successCount > 1 ? 's' : ''}, ${errorCount} failed.`, variant: "destructive" });
+        } else {
+          toast({ title: "Upload failed", description: `Failed to upload ${errorCount} file${errorCount > 1 ? 's' : ''}.`, variant: "destructive" });
+        }
       }
     };
-    
     input.click();
   };
 
@@ -135,53 +154,29 @@ const UserFiles = () => {
     input.type = 'file';
     input.webkitdirectory = true;
     input.multiple = true;
-    
-    input.onchange = (e) => {
-      const uploadedFiles = Array.from((e.target as HTMLInputElement).files || []);
-      if (uploadedFiles.length > 0) {
-        uploadedFiles.forEach(file => {
-          const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
-          let fileType = 'Document';
-          
-          if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
-            fileType = 'Image';
-          } else if (['pdf'].includes(fileExtension)) {
-            fileType = 'PDF Document';
-          } else if (['doc', 'docx'].includes(fileExtension)) {
-            fileType = 'Word Document';
-          } else if (['xls', 'xlsx'].includes(fileExtension)) {
-            fileType = 'Excel Spreadsheet';
-          } else if (['ppt', 'pptx'].includes(fileExtension)) {
-            fileType = 'PowerPoint Presentation';
-          }
-          
-          addFile({
-            name: file.name,
-            type: 'file',
-            size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-            fileType,
-            parentPath: currentPath,
-          });
-        });
-        
-        toast({
-          title: "Folder uploaded successfully",
-          description: `Folder with ${uploadedFiles.length} file(s) uploaded to ${currentPath || 'root'} folder.`,
-        });
+    input.onchange = async (e) => {
+      const uploadedFiles = (e.target as HTMLInputElement).files;
+      if (uploadedFiles && uploadedFiles.length > 0) {
+        try {
+          await uploadFolder.mutateAsync({ files: uploadedFiles, parentId: currentFolderId || undefined });
+          toast({ title: "Folder uploaded", description: `Folder uploaded successfully.` });
+        } catch (error) {
+          toast({ title: "Error uploading folder", description: "Failed to upload folder. Please try again.", variant: "destructive" });
+        }
       }
     };
-    
     input.click();
   };
 
-  const handleNewFolder = () => {
+  const handleNewFolder = async () => {
     const folderName = prompt('Enter folder name:');
     if (folderName && folderName.trim()) {
-      addFolder(folderName.trim(), currentPath);
-      toast({
-        title: "Folder created",
-        description: `"${folderName}" folder created successfully.`,
-      });
+      try {
+        await createFolder.mutateAsync({ name: folderName.trim(), parentId: currentFolderId || undefined });
+        toast({ title: "Folder created", description: `"${folderName}" folder created successfully.` });
+      } catch (error: any) {
+        toast({ title: "Error creating folder", description: error?.response?.data?.message || `Failed to create folder "${folderName}". Please try again.`, variant: "destructive" });
+      }
     }
   };
 
@@ -197,6 +192,9 @@ const UserFiles = () => {
       title: "Download started",
       description: `Downloading ${file.name}...`,
     });
+    if (file.webContentLink) {
+      window.open(file.webContentLink, '_blank');
+    }
   };
 
 
@@ -207,13 +205,13 @@ const UserFiles = () => {
     });
   };
 
-  const handleDelete = (file: FileItem) => {
-    deleteFile(file.id);
-    toast({
-      title: "File deleted",
-      description: `${file.name} has been moved to trash.`,
-      variant: "destructive",
-    });
+  const handleDelete = async (item: FileItem) => {
+    try {
+      await deleteFileOrFolder.mutateAsync({ itemId: item.id, itemType: item.type });
+      toast({ title: "Item deleted", description: `${item.name} has been deleted successfully.`, variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Error deleting item", description: `Failed to delete ${item.name}. Please try again.`, variant: "destructive" });
+    }
   };
 
   const handleSort = (newSortBy: 'name' | 'modified' | 'size') => {
@@ -232,194 +230,32 @@ const UserFiles = () => {
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">File Management</h1>
           <BreadcrumbNav 
-            items={getBreadcrumbItems()} 
+            items={currentPath}
             onNavigate={handleNavigate}
           />
         </div>
-        <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 lg:items-center">
-          <div className="flex space-x-2">
-            <Button onClick={handleUpload} variant="default" size="sm" className="flex-1 sm:flex-none">
-              <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="text-xs sm:text-sm">Upload Files</span>
-          </Button>
-            <Button onClick={handleUploadFolder} variant="outline" size="sm" className="flex-1 sm:flex-none">
-              <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="text-xs sm:text-sm">Upload Folder</span>
-          </Button>
-          </div>
-          <div className="flex space-x-2">
-            <Button onClick={handleNewFolder} variant="outline" size="sm" className="flex-1 sm:flex-none">
-              <FolderPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="text-xs sm:text-sm">New Folder</span>
-          </Button>
-            <Button onClick={handleStarredFiles} variant="outline" size="sm" className="flex-1 sm:flex-none">
-              <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="text-xs sm:text-sm">Starred</span>
-          </Button>
-          </div>
-        </div>
+        <FileToolbar
+          onUpload={handleUpload}
+          onUploadFolder={handleUploadFolder}
+          onNewFolder={handleNewFolder}
+          onStarred={handleStarredFiles}
+        />
       </div>
 
-      {/* Search and Controls */}
-      <div className="flex items-center justify-between space-x-2 sm:space-x-4">
-        <div className="flex items-center space-x-2 sm:space-x-4 flex-1">
-          <div className="relative flex-1 max-w-xs sm:max-w-sm">
-            <Search className="absolute left-2 sm:left-3 top-2 sm:top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search files..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 sm:pl-10 h-8 sm:h-10 text-sm"
-            />
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-                <ArrowUpDown className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Sort by {sortBy} ({sortOrder})</span>
-                <span className="sm:hidden">Sort</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleSort('name')}>
-                Sort by Name
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSort('modified')}>
-                Sort by Date Modified
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSort('size')}>
-                Sort by Size
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+      <FileSearchSort
+        searchTerm={searchTerm}
+        onSearch={setSearchTerm}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+      />
 
       {/* File List */}
-      <div className="border rounded-lg overflow-hidden">
-        {/* Desktop Header */}
-        <div className="hidden lg:grid lg:grid-cols-6 gap-4 p-4 border-b bg-muted/20 text-sm font-medium">
-          <div>Name</div>
-          <div>Type</div>
-          <div>Size</div>
-          <div>Modified</div>
-          <div>Status</div>
-          <div></div>
-        </div>
-        
-        {/* File Items */}
-        {sortedFiles.map((item) => {
-          const IconComponent = getFileIcon(item);
-          return (
-            <div key={item.id} className="border-b hover:bg-muted/50 cursor-pointer transition-colors group">
-              {/* Mobile Layout */}
-              <div className="lg:hidden p-3 sm:p-4" onClick={() => handleItemClick(item)}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-                    <IconComponent className={`h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${
-                      item.type === 'folder' ? 'text-blue-600' : 'text-gray-600'
-                    }`} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm sm:text-base font-medium truncate">{item.name}</p>
-                      <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
-                        <span>{item.type === 'folder' ? 'Folder' : item.fileType}</span>
-                        {item.size && (
-                          <>
-                            <span>•</span>
-                            <span>{item.size}</span>
-                          </>
-                        )}
-                        <span>•</span>
-                        <span>{item.modified}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Badge variant="outline" className="text-xs">Private</Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm" className="h-6 w-6 sm:h-8 sm:w-8 p-0">
-                          <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-background border z-50">
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          if (item.type === 'file') {
-                            setSelectedFile(item);
-                            setIsModalOpen(true);
-                          }
-                        }}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(item);
-                        }}>
-                          <Download className="w-4 h-4 mr-2" />
-                          Download
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </div>
-
-              {/* Desktop Layout */}
-              <div 
-                className="hidden lg:grid lg:grid-cols-6 gap-4 p-4"
-              onClick={() => handleItemClick(item)}
-            >
-              <div className="flex items-center space-x-2">
-                <IconComponent className={`h-4 w-4 ${
-                  item.type === 'folder' ? 'text-blue-600' : 'text-gray-600'
-                }`} />
-                <span className="text-sm font-medium truncate">{item.name}</span>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {item.type === 'folder' ? 'Folder' : item.fileType}
-              </div>
-              <div className="text-sm text-muted-foreground">{item.size || '-'}</div>
-              <div className="text-sm text-muted-foreground">{item.modified}</div>
-              <div>
-                <Badge variant="outline">Private</Badge>
-              </div>
-              <div className="flex justify-end">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-background border z-50">
-                    <DropdownMenuItem onClick={(e) => {
-                      e.stopPropagation();
-                      if (item.type === 'file') {
-                        setSelectedFile(item);
-                        setIsModalOpen(true);
-                      }
-                    }}>
-                      <Eye className="w-4 h-4 mr-2" />
-                      View
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload(item);
-                    }}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <FileList
+        items={sortedItems}
+        onItemClick={handleItemClick}
+        onDownload={handleDownload}
+      />
 
       {/* File View Modal */}
       <FileViewModal

@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { UserPlus, Upload, X } from 'lucide-react';
+import { UserPlus, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { apiV1 } from '@/lib/api';
 
 interface AddUserModalProps {
   onUserAdd: (user: any) => void;
@@ -14,77 +14,54 @@ interface AddUserModalProps {
 
 export const AddUserModal = ({ onUserAdd }: AddUserModalProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
-    role: 'User',
-    status: 'Active',
-    sendWelcomeEmail: true,
-    temporaryPassword: '',
+    phoneNumber: '',
+    password: '',
+    role: 'MEMBER', // Default role as per backend docs
   });
-  const [avatar, setAvatar] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string>('');
   const { toast } = useToast();
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatar(file);
-      const reader = new FileReader();
-      reader.onload = (e) => setAvatarPreview(e.target?.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name.trim() || !formData.email.trim()) {
+    setIsLoading(true);
+
+    try {
+      const response = await apiV1.post('/users/add-user', {
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
+        password: formData.password || 'defaultpassword', // Use a default if empty, or generate on backend
+        role: formData.role,
+      });
+
       toast({
-        title: "Validation Error",
-        description: "Name and email are required fields.",
+        title: "User Created",
+        description: `${response.data.data.member.fullName} has been successfully added.`,
+      });
+      onUserAdd(response.data.data.member); // Pass the newly created user data to parent
+
+      // Reset form
+      setFormData({
+        fullName: '',
+        email: '',
+        phoneNumber: '',
+        password: '',
+        role: 'MEMBER',
+      });
+      setIsOpen(false);
+    } catch (error: any) {
+      console.error("Failed to add user:", error);
+      toast({
+        title: "Error creating user",
+        description: error.response?.data?.message || "Failed to create user. Please try again.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsLoading(false);
     }
-
-    const newUser = {
-      id: Date.now().toString(),
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-      role: formData.role,
-      status: formData.status,
-      lastLogin: 'Never',
-      filesCount: 0,
-      storageUsed: '0 MB',
-      avatar: avatarPreview || `/placeholder.svg`,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-
-    onUserAdd(newUser);
-    
-    toast({
-      title: "User Created",
-      description: `${newUser.name} has been successfully added.${formData.sendWelcomeEmail ? ' Welcome email sent.' : ''}`,
-    });
-
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      role: 'User',
-      status: 'Active',
-      sendWelcomeEmail: true,
-      temporaryPassword: '',
-    });
-    setAvatar(null);
-    setAvatarPreview('');
-    setIsOpen(false);
-  };
-
-  const removeAvatar = () => {
-    setAvatar(null);
-    setAvatarPreview('');
   };
 
   return (
@@ -101,61 +78,15 @@ export const AddUserModal = ({ onUserAdd }: AddUserModalProps) => {
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Avatar Upload */}
-          <div className="space-y-2">
-            <Label>Profile Picture</Label>
-            <div className="flex items-center space-x-4">
-              {avatarPreview ? (
-                <div className="relative">
-                  <img
-                    src={avatarPreview}
-                    alt="Avatar preview"
-                    className="w-16 h-16 rounded-full object-cover border"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="destructive"
-                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                    onClick={removeAvatar}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
-                  <Upload className="w-6 h-6 text-muted-foreground" />
-                </div>
-              )}
-              <div>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  className="hidden"
-                  id="avatar-upload"
-                />
-                <Label htmlFor="avatar-upload" className="cursor-pointer">
-                  <Button type="button" variant="outline" size="sm" asChild>
-                    <span>Choose Image</span>
-                  </Button>
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Optional. JPG, PNG, or GIF. Max 2MB.
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Basic Information */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name *</Label>
+              <Label htmlFor="fullName">Full Name *</Label>
               <Input
-                id="name"
+                id="fullName"
                 placeholder="John Doe"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={formData.fullName}
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                 required
               />
             </div>
@@ -170,9 +101,19 @@ export const AddUserModal = ({ onUserAdd }: AddUserModalProps) => {
                 required
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber">Phone Number</Label>
+              <Input
+                id="phoneNumber"
+                type="tel"
+                placeholder="e.g., +1234567890"
+                value={formData.phoneNumber}
+                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+              />
+            </div>
           </div>
 
-          {/* Role and Status */}
+          {/* Role and Password */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
@@ -181,64 +122,37 @@ export const AddUserModal = ({ onUserAdd }: AddUserModalProps) => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="User">User</SelectItem>
-                  <SelectItem value="Moderator">Moderator</SelectItem>
-                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="MEMBER">Member</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                  <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="status">Initial Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Temporary Password */}
-          <div className="space-y-2">
-            <Label htmlFor="password">Temporary Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Auto-generated if left empty"
-              value={formData.temporaryPassword}
-              onChange={(e) => setFormData({ ...formData, temporaryPassword: e.target.value })}
-            />
-            <p className="text-xs text-muted-foreground">
-              Leave empty to auto-generate a secure password
-            </p>
-          </div>
-
-          {/* Options */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="welcome-email">Send Welcome Email</Label>
-                <p className="text-xs text-muted-foreground">
-                  Send login credentials and welcome message
-                </p>
-              </div>
-              <Switch
-                id="welcome-email"
-                checked={formData.sendWelcomeEmail}
-                onCheckedChange={(checked) => setFormData({ ...formData, sendWelcomeEmail: checked })}
+              <Label htmlFor="password">Password *</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
               />
             </div>
           </div>
 
           {/* Buttons */}
           <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit">Create User</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating User...</>
+              ) : (
+                'Create User'
+              )}
+            </Button>
           </div>
         </form>
       </DialogContent>
