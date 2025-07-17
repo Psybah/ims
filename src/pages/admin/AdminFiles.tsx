@@ -100,9 +100,9 @@ const AdminFiles = () => {
       ...prev,
       {
         id,
-        name: file.name,
-        size: file.size,
-        progress: 0,
+            name: file.name,
+            size: file.size,
+            progress: 0,
         status: 'uploading',
       },
     ]);
@@ -117,8 +117,8 @@ const AdminFiles = () => {
   };
   const removeUpload = (id: string) => {
     setUploads((prev) => prev.filter((u) => u.id !== id));
-  };
-
+          };
+          
   const handleUpload = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -163,7 +163,7 @@ const AdminFiles = () => {
   const handleStarred = () => {
     alert('Starred files not implemented in this UI.');
   };
-
+      
   const handleDownload = (item: FileItem) => {
     window.open(item.webContentLink, '_blank');
   };

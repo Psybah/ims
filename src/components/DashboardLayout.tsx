@@ -43,9 +43,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               </div>
 
               <div className="flex items-center space-x-1 sm:space-x-4">
-                {/* Notifications */}
-                <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:h-10 sm:w-10">
-                  <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+                {/* Notifications - only show on mobile */}
+                <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:hidden">
+                  <Bell className="w-4 h-4" />
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full"></span>
                 </Button>
 
@@ -58,7 +58,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
                           {user?.avatar || user?.name?.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="ml-1 sm:ml-2 text-left hidden sm:block">
+                      {/* Hide email text on desktop/tablet, only show on mobile */}
+                      <div className="ml-1 sm:ml-2 text-left block sm:hidden">
                         <p className="text-sm font-medium leading-none">{user?.name}</p>
                         <p className="text-xs text-muted-foreground leading-none mt-1">
                           {user?.email}

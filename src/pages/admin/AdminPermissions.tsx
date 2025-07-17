@@ -1,29 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Folder, File as FileIcon, ChevronDown, ChevronRight, Plus, Edit, Trash2, Users, User } from 'lucide-react';
+import { Folder, File as FileIcon, ChevronDown, ChevronRight, Plus, Edit, Trash2, Users, User, MoreVertical, Check, ChevronLeft } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCaption,
+} from '@/components/ui/table';
+import { EmptyState } from '@/components/EmptyState';
+import { PermissionsTable } from '@/components/admin/PermissionsTable';
+import { VSCodeFolderTree } from '@/components/admin/VSCodeFolderTree';
+import { useSidebar } from '@/components/ui/sidebar';
 
 // --- Demo Data ---
-const mockFolders = [
+interface TreeNode {
+  id: string;
+  name: string;
+  type: 'folder' | 'file';
+  parentId: string | null;
+  children?: TreeNode[];
+}
+
+interface MockPermission {
+  resourceId: string;
+  subjectId: string;
+  subjectType: 'user' | 'group';
+  permissions: string[];
+  inherited: boolean;
+}
+
+const mockFolders: TreeNode[] = [
   {
-    id: 'root', name: 'Root', type: 'folder', parentId: null, children: [
+    id: 'root', name: 'Root', type: 'folder' as const, parentId: null, children: [
       {
-        id: 'finance', name: 'Finance', type: 'folder', parentId: 'root', children: [
-          { id: 'payroll', name: 'Payroll', type: 'folder', parentId: 'finance', children: [
-            { id: 'payroll.xlsx', name: 'payroll.xlsx', type: 'file', parentId: 'payroll' }
+        id: 'finance', name: 'Finance', type: 'folder' as const, parentId: 'root', children: [
+          { id: 'payroll', name: 'Payroll', type: 'folder' as const, parentId: 'finance', children: [
+            { id: 'payroll.xlsx', name: 'payroll.xlsx', type: 'file' as const, parentId: 'payroll' }
           ] },
-          { id: 'budget.pdf', name: 'budget.pdf', type: 'file', parentId: 'finance' },
+          { id: 'budget.pdf', name: 'budget.pdf', type: 'file' as const, parentId: 'finance' },
         ]
       },
       {
-        id: 'hr', name: 'HR', type: 'folder', parentId: 'root', children: [
-          { id: 'policies.docx', name: 'policies.docx', type: 'file', parentId: 'hr' },
+        id: 'hr', name: 'HR', type: 'folder' as const, parentId: 'root', children: [
+          { id: 'policies.docx', name: 'policies.docx', type: 'file' as const, parentId: 'hr' },
         ]
       },
-      { id: 'readme.txt', name: 'readme.txt', type: 'file', parentId: 'root' },
+      { id: 'readme.txt', name: 'readme.txt', type: 'file' as const, parentId: 'root' },
     ]
   }
 ];
@@ -38,13 +73,13 @@ const mockUsers = [
   { id: 'u3', name: 'Carol Lee' },
   { id: 'u4', name: 'David Kim' },
 ];
-const mockPermissions = [
-  { resourceId: 'finance', subjectId: 'g1', subjectType: 'group', permission: 'edit', inherited: false },
-  { resourceId: 'finance', subjectId: 'g3', subjectType: 'group', permission: 'view', inherited: true },
-  { resourceId: 'payroll', subjectId: 'g1', subjectType: 'group', permission: 'view', inherited: true },
-  { resourceId: 'hr', subjectId: 'g2', subjectType: 'group', permission: 'edit', inherited: false },
-  { resourceId: 'budget.pdf', subjectId: 'u2', subjectType: 'user', permission: 'view', inherited: false },
-  { resourceId: 'payroll.xlsx', subjectId: 'u3', subjectType: 'user', permission: 'edit', inherited: false },
+const mockPermissions: MockPermission[] = [
+  { resourceId: 'finance', subjectId: 'g1', subjectType: 'group' as const, permissions: ['edit', 'view'], inherited: false },
+  { resourceId: 'finance', subjectId: 'g3', subjectType: 'group' as const, permissions: ['view'], inherited: true },
+  { resourceId: 'payroll', subjectId: 'g1', subjectType: 'group' as const, permissions: ['view'], inherited: true },
+  { resourceId: 'hr', subjectId: 'g2', subjectType: 'group' as const, permissions: ['edit', 'delete'], inherited: false },
+  { resourceId: 'budget.pdf', subjectId: 'u2', subjectType: 'user' as const, permissions: ['view'], inherited: false },
+  { resourceId: 'payroll.xlsx', subjectId: 'u3', subjectType: 'user' as const, permissions: ['edit', 'delete'], inherited: false },
 ];
 const permissionLevels = [
   { value: 'view', label: 'View' },
@@ -72,38 +107,6 @@ function flattenTree(tree) {
   return result;
 }
 
-function VSCodeFolderTree({ tree, selectedId, onSelect }) {
-  const [expanded, setExpanded] = useState(() => new Set(['root']));
-  const toggle = id => setExpanded(prev => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
-  const renderNode = (node, level = 0) => {
-    const isFolder = node.type === 'folder';
-    const isExpanded = expanded.has(node.id);
-    return (
-      <div key={node.id} style={{ marginLeft: level * 16 }}>
-        <div className={`flex items-center gap-1 cursor-pointer rounded px-1 ${selectedId === node.id ? 'bg-primary/10' : ''}`}
-          onClick={() => isFolder ? toggle(node.id) : onSelect(node.id)}
-        >
-          {isFolder ? (
-            <span onClick={e => { e.stopPropagation(); toggle(node.id); }}>
-              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            </span>
-          ) : <span style={{ width: 16 }} />}
-          {isFolder ? <Folder className="w-4 h-4 text-blue-600 mr-1" /> : <FileIcon className="w-4 h-4 text-gray-600 mr-1" />}
-          <span onClick={() => onSelect(node.id)} className="truncate">{node.name}</span>
-        </div>
-        {isFolder && isExpanded && node.children && (
-          <div>{node.children.map(child => renderNode(child, level + 1))}</div>
-        )}
-      </div>
-    );
-  };
-  return <div>{tree.map(node => renderNode(node))}</div>;
-}
-
 function InheritanceIndicator({ inherited }) {
   return inherited ? (
     <Badge variant="outline" className="text-xs ml-2">Inherited</Badge>
@@ -112,74 +115,62 @@ function InheritanceIndicator({ inherited }) {
   );
 }
 
-function PermissionsTable({ permissions, groups, users, onEdit, onRemove }) {
-  return (
-    <table className="w-full text-sm border mt-4">
-      <thead>
-        <tr className="bg-muted/30">
-          <th className="text-left p-2">User/Group</th>
-          <th className="text-left p-2">Type</th>
-          <th className="text-left p-2">Permission</th>
-          <th className="text-left p-2">Inheritance</th>
-          <th className="p-2"></th>
-        </tr>
-      </thead>
-      <tbody>
-        {permissions.map(p => {
-          const subject = p.subjectType === 'group' ? groups.find(g => g.id === p.subjectId) : users.find(u => u.id === p.subjectId);
-          return (
-            <tr key={p.subjectType + '-' + p.subjectId} className="border-b">
-              <td className="p-2 flex items-center gap-2">
-                {p.subjectType === 'group' ? <Users className="w-4 h-4 text-purple-600" /> : <User className="w-4 h-4 text-green-600" />}
-                {subject?.name}
-              </td>
-              <td className="p-2 capitalize">{p.subjectType}</td>
-              <td className="p-2 capitalize">{p.permission}</td>
-              <td className="p-2"><InheritanceIndicator inherited={p.inherited} /></td>
-              <td className="p-2 flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => onEdit(p)}><Edit className="w-4 h-4" /></Button>
-                {!p.inherited && (
-                  <Button size="sm" variant="destructive" onClick={() => onRemove(p)}><Trash2 className="w-4 h-4" /></Button>
-                )}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
-}
-
 export default function AdminPermissions() {
+  const { setOpen } = useSidebar();
   const [selectedResourceId, setSelectedResourceId] = useState('root');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editPermission, setEditPermission] = useState(null);
+  const [editPermission, setEditPermission] = useState<MockPermission | null>(null);
   // Add/Edit dialog state
-  const [selectedSubjectType, setSelectedSubjectType] = useState('user');
+  const [selectedSubjectType, setSelectedSubjectType] = useState<'user' | 'group'>('user');
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
-  const [selectedPerm, setSelectedPerm] = useState('view');
+  const [selectedPerms, setSelectedPerms] = useState(['view']);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [permissions, setPermissions] = useState<MockPermission[]>(mockPermissions);
+
+  // Collapse sidebar when component mounts
+  useEffect(() => {
+    setOpen(false);
+  }, [setOpen]);
 
   // Flattened list for easy lookup
   const allNodes = flattenTree(mockFolders);
   const selectedNode = allNodes.find(n => n.id === selectedResourceId);
   const folderPath = getFolderPathById(mockFolders, selectedResourceId) || [];
   // Filter permissions for selected resource
-  const resourcePerms = mockPermissions.filter(p => p.resourceId === selectedResourceId);
+  const resourcePerms = permissions.filter(p => p.resourceId === selectedResourceId);
+  
+  // Convert MockPermission to Permission for the table component
+  const tablePermissions = resourcePerms.map(p => ({
+    subjectType: p.subjectType,
+    subjectId: p.subjectId,
+    permissions: p.permissions,
+    inherited: p.inherited
+  }));
 
-  // Responsive sidebar collapse (mock: always open for now)
-  // TODO: Add real responsive/collapsible logic if needed
+  // Responsive sidebar toggle
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
     <div className="flex h-[80vh]">
       {/* VSCode-style Folder/File Tree Sidebar */}
-      <div className="w-72 border-r p-4 bg-muted/10 overflow-y-auto">
+      <div className={`w-72 border-r p-4 bg-muted/10 overflow-y-auto hidden md:block`}>
         <h2 className="font-bold mb-4">Folders & Files</h2>
-        <VSCodeFolderTree tree={mockFolders} selectedId={selectedResourceId} onSelect={setSelectedResourceId} />
+        <VSCodeFolderTree tree={mockFolders} selectedId={selectedResourceId} onSelect={setSelectedResourceId} mobileOpen={false} setMobileOpen={() => {}} />
       </div>
+      {/* Mobile sidebar button */}
+      {isMobile && (
+        <Button className="fixed top-4 left-4 z-50 md:hidden" variant="outline" onClick={() => setMobileSidebarOpen(true)}>
+          <Folder className="w-5 h-5 mr-2" /> Browse
+        </Button>
+      )}
+      {/* Mobile sidebar overlay */}
+      {isMobile && mobileSidebarOpen && (
+        <VSCodeFolderTree tree={mockFolders} selectedId={selectedResourceId} onSelect={id => { setSelectedResourceId(id); setMobileSidebarOpen(false); }} mobileOpen={mobileSidebarOpen} setMobileOpen={setMobileSidebarOpen} />
+      )}
       {/* Main Panel */}
-      <div className="flex-1 p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="flex-1 p-2 sm:p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
           <div>
             <h1 className="text-2xl font-bold mb-1">Permissions</h1>
             <BreadcrumbNav items={folderPath} onNavigate={id => setSelectedResourceId(id)} />
@@ -188,22 +179,39 @@ export default function AdminPermissions() {
             <Plus className="w-4 h-4 mr-2" /> Add Permission
           </Button>
         </div>
-        <PermissionsTable
-          permissions={resourcePerms}
-          groups={mockGroups}
-          users={mockUsers}
-          onEdit={perm => {
-            setEditPermission(perm);
-            setSelectedSubjectType(perm.subjectType);
-            setSelectedSubjectId(perm.subjectId);
-            setSelectedPerm(perm.permission);
-            setShowEditDialog(true);
-          }}
-          onRemove={perm => {
-            // Remove logic (mock)
-            alert(`Remove permission for ${perm.subjectType} ${perm.subjectId}`);
-          }}
-        />
+        {resourcePerms.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No Permissions Yet"
+            description="No users or groups have explicit permissions for this file or folder. Add a permission to get started."
+            actionLabel="Add Permission"
+            onAction={() => setShowAddDialog(true)}
+          />
+        ) : (
+          <PermissionsTable
+            permissions={tablePermissions}
+            groups={mockGroups}
+            users={mockUsers}
+            onEdit={perm => {
+              const fullPerm = resourcePerms.find(rp => rp.subjectId === perm.subjectId && rp.subjectType === perm.subjectType);
+              if (fullPerm) {
+                setEditPermission(fullPerm);
+                setSelectedSubjectType(perm.subjectType);
+                setSelectedSubjectId(perm.subjectId);
+                setSelectedPerms(perm.permissions);
+                setShowEditDialog(true);
+              }
+            }}
+            onRemove={perm => {
+              // Remove logic (mock)
+              setPermissions(prev => prev.filter(p => !(
+                p.subjectId === perm.subjectId && 
+                p.subjectType === perm.subjectType && 
+                p.resourceId === selectedResourceId
+              )));
+            }}
+          />
+        )}
       </div>
       {/* Add Permission Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -214,7 +222,7 @@ export default function AdminPermissions() {
           <div className="space-y-4">
             <div>
               <label className="block mb-1 font-medium">Type</label>
-              <Select value={selectedSubjectType} onValueChange={setSelectedSubjectType}>
+              <Select value={selectedSubjectType} onValueChange={(value) => setSelectedSubjectType(value as 'user' | 'group')}>
                 <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">User</SelectItem>
@@ -234,21 +242,37 @@ export default function AdminPermissions() {
               </Select>
             </div>
             <div>
-              <label className="block mb-1 font-medium">Permission</label>
-              <Select value={selectedPerm} onValueChange={setSelectedPerm}>
-                <SelectTrigger><SelectValue placeholder="Select permission" /></SelectTrigger>
-                <SelectContent>
-                  {permissionLevels.map(l => (
-                    <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="block mb-1 font-medium">Permissions</label>
+              <div className="flex flex-wrap gap-2">
+                {permissionLevels.map(l => (
+                  <Button
+                    key={l.value}
+                    type="button"
+                    variant={selectedPerms.includes(l.value) ? 'default' : 'outline'}
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={() => setSelectedPerms(prev => prev.includes(l.value) ? prev.filter(p => p !== l.value) : [...prev, l.value])}
+                  >
+                    {selectedPerms.includes(l.value) && <Check className="w-3 h-3 mr-1" />}
+                    {l.label}
+                  </Button>
+                ))}
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
               <Button onClick={() => {
                 // Add logic (mock)
-                alert(`Add ${selectedPerm} for ${selectedSubjectType} ${selectedSubjectId}`);
+                setPermissions(prev => [
+                  ...prev,
+                  {
+                    resourceId: selectedResourceId,
+                    subjectId: selectedSubjectId,
+                    subjectType: selectedSubjectType,
+                    permissions: selectedPerms,
+                    inherited: false,
+                  },
+                ]);
                 setShowAddDialog(false);
               }}>Add</Button>
             </div>
@@ -263,21 +287,28 @@ export default function AdminPermissions() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="block mb-1 font-medium">Permission</label>
-              <Select value={selectedPerm} onValueChange={setSelectedPerm}>
-                <SelectTrigger><SelectValue placeholder="Select permission" /></SelectTrigger>
-                <SelectContent>
-                  {permissionLevels.map(l => (
-                    <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="block mb-1 font-medium">Permissions</label>
+              <div className="flex flex-wrap gap-2">
+                {permissionLevels.map(l => (
+                  <Button
+                    key={l.value}
+                    type="button"
+                    variant={selectedPerms.includes(l.value) ? 'default' : 'outline'}
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={() => setSelectedPerms(prev => prev.includes(l.value) ? prev.filter(p => p !== l.value) : [...prev, l.value])}
+                  >
+                    {selectedPerms.includes(l.value) && <Check className="w-3 h-3 mr-1" />}
+                    {l.label}
+                  </Button>
+                ))}
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
               <Button onClick={() => {
                 // Edit logic (mock)
-                alert(`Edit permission to ${selectedPerm} for ${selectedSubjectType} ${selectedSubjectId}`);
+                alert(`Edit permissions to [${selectedPerms.join(', ')}] for ${selectedSubjectType} ${selectedSubjectId}`);
                 setShowEditDialog(false);
               }}>Save</Button>
             </div>
