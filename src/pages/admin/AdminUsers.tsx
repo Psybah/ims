@@ -183,7 +183,7 @@ const AdminUsers = () => {
               {users.length}
             </div>
             <p className="text-xs text-muted-foreground">
-              100% of total (based on API data)
+              100% of total
             </p>
           </CardContent>
         </Card>
@@ -416,7 +416,7 @@ const AdminUsers = () => {
       />
       <ChangeRoleModal 
         open={isRoleModalOpen}
-        onOpenChange={setIsRoleModalChangeRole}
+        onOpenChange={setIsRoleModalOpen}
         user={selectedUser}
         onRoleChange={handleChangeRole}
       />

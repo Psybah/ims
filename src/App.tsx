@@ -114,7 +114,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AppRoutes />
+        <AppRoutes />
     </TooltipProvider>
   </QueryClientProvider>
 );

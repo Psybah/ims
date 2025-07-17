@@ -150,7 +150,7 @@ export const EditUserModal = ({ user, isOpen, onOpenChange, onUserUpdate }: Edit
               <Label htmlFor="name">Full Name *</Label>
               <Input
                 id="name"
-                value={formData.name}
+                value={formData.name ?? ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Enter full name"
                 required
@@ -161,7 +161,7 @@ export const EditUserModal = ({ user, isOpen, onOpenChange, onUserUpdate }: Edit
               <Input
                 id="email"
                 type="email"
-                value={formData.email}
+                value={formData.email ?? ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                 placeholder="Enter email address"
                 required
