@@ -110,12 +110,12 @@ The application includes demo accounts for testing:
 
 ### Admin Account
 - **Email:** `admin@filemanagement.com`
-- **Password:** `demo123`
+- **Password:** `demo123456`
 - **Features:** Full administrative access, user management, system analytics
 
 ### User Account
 - **Email:** `chinedu@company.com`
-- **Password:** `demo123`
+- **Password:** `demo123456`
 - **Features:** Personal file management, limited system access
 
 ## 📁 Project Structure

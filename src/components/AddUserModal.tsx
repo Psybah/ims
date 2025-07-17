@@ -28,18 +28,29 @@ export const AddUserModal = ({ onUserAdd }: AddUserModalProps) => {
     e.preventDefault();
     setIsLoading(true);
 
+    // Validate password is provided
+    if (!formData.password.trim()) {
+      toast({
+        title: "Password Required",
+        description: "Please provide a password for the new user.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await apiV1.post('/users/add-user', {
         fullName: formData.fullName.trim(),
         email: formData.email.trim(),
         phoneNumber: formData.phoneNumber.trim(),
-        password: formData.password || 'defaultpassword', // Use a default if empty, or generate on backend
+        password: formData.password.trim(),
         role: formData.role,
       });
 
       toast({
         title: "User Created",
-        description: `${response.data.data.member.fullName} has been successfully added.`,
+        description: `${response.data.data.member.fullName} has been successfully added with email: ${response.data.data.member.email}`,
       });
       onUserAdd(response.data.data.member); // Pass the newly created user data to parent
 

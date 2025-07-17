@@ -30,8 +30,23 @@ export const AuthProvider = ({ children }) => {
       return true;
     } catch (error) {
       console.error('Login failed:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Request data:', { email, password: '***' });
       setIsLoading(false);
-      return error.response?.data?.message || 'Login failed';
+      
+      // Try to get detailed error message
+      if (error.response?.data?.message) {
+        return error.response.data.message;
+      } else if (error.response?.data?.errors) {
+        // Handle validation errors
+        const errorMessages = error.response.data.errors.map(err => err.message || err).join(', ');
+        return errorMessages;
+      } else if (error.response?.status === 422) {
+        return 'Invalid email or password format. Please check your credentials.';
+      } else {
+        return error.message || 'Login failed';
+      }
     }
   };
 
