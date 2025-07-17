@@ -49,7 +49,7 @@ export function AppSidebar() {
   const { user, logout } = useAuth();
   const currentPath = location.pathname;
 
-  const items = user?.role === 'admin' ? adminItems : userItems;
+  const items = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' ? adminItems : userItems;
   const isActive = (path: string) => currentPath === path;
   const collapsed = state === 'collapsed';
 

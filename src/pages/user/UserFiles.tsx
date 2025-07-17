@@ -1,28 +1,11 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Upload,
-  Search,
-  Download,
-  MoreVertical,
-  FolderPlus,
-  ArrowUpDown,
   Folder,
   FileText,
   Image,
   FileSpreadsheet,
   Presentation,
-  File,
-  Eye,
-  Star
+  File
 } from 'lucide-react';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
 import { FileViewModal } from '@/components/FileViewModal';
@@ -39,6 +22,7 @@ import { FileList } from '@/components/FileList';
 import { FileToolbar } from '@/components/FileToolbar';
 import { FileSearchSort } from '@/components/FileSearchSort';
 import { useFilesQuery } from '@/hooks/useFilesQuery';
+import { UploadProgress } from '@/components/UploadProgress';
 
 const getFileIcon = (item: FileItem) => {
   if (item.type === 'folder') return Folder;
@@ -61,11 +45,42 @@ const UserFiles = () => {
   const { data: items = [], isLoading, error } = useFilesQuery(currentFolderId);
   const [sortBy, setSortBy] = useState<'name' | 'modified' | 'size'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [uploads, setUploads] = useState([]);
 
   const createFolder = useCreateFolder();
   const uploadFile = useUploadFile();
   const uploadFolder = useUploadFolder();
   const deleteFileOrFolder = useDeleteFileOrFolder();
+
+  // Helper to add upload item
+  const addUpload = (file: File) => {
+    const id = `${file.name}-${Date.now()}`;
+    setUploads((prev) => [
+      ...prev,
+      {
+        id,
+        name: file.name,
+        size: file.size,
+        progress: 0,
+        status: 'uploading',
+      },
+    ]);
+    return id;
+  };
+
+  // Helper to update upload progress
+  const updateUpload = (id, progress, status = 'uploading', error) => {
+    setUploads((prev) =>
+      prev.map((u) =>
+        u.id === id ? { ...u, progress, status, error } : u
+      )
+    );
+  };
+
+  // Helper to remove upload
+  const removeUpload = (id) => {
+    setUploads((prev) => prev.filter((u) => u.id !== id));
+  };
 
   // ...fetchItems logic will be replaced with useFilesQuery in next step
 
@@ -127,22 +142,22 @@ const UserFiles = () => {
     input.onchange = async (e) => {
       const uploadedFiles = Array.from((e.target as HTMLInputElement).files || []);
       if (uploadedFiles.length > 0) {
-        let successCount = 0;
-        let errorCount = 0;
         for (const file of uploadedFiles) {
+          const uploadId = addUpload(file);
           try {
-            await uploadFile.mutateAsync({ file, parentId: currentFolderId || undefined });
-            successCount++;
+            await uploadFile.mutateAsync({
+              file,
+              parentId: currentFolderId || undefined,
+              onUploadProgress: (event) => {
+                const percent = event.total ? Math.round((event.loaded / event.total) * 100) : 0;
+                updateUpload(uploadId, percent);
+              },
+            });
+            updateUpload(uploadId, 100, 'completed');
+            setTimeout(() => removeUpload(uploadId), 2000);
           } catch (error) {
-            errorCount++;
+            updateUpload(uploadId, 0, 'error', 'Upload failed');
           }
-        }
-        if (successCount > 0 && errorCount === 0) {
-          toast({ title: "Upload successful", description: `Successfully uploaded ${successCount} file${successCount > 1 ? 's' : ''}.` });
-        } else if (successCount > 0 && errorCount > 0) {
-          toast({ title: "Partial upload", description: `Uploaded ${successCount} file${successCount > 1 ? 's' : ''}, ${errorCount} failed.`, variant: "destructive" });
-        } else {
-          toast({ title: "Upload failed", description: `Failed to upload ${errorCount} file${errorCount > 1 ? 's' : ''}.`, variant: "destructive" });
         }
       }
     };
@@ -157,11 +172,32 @@ const UserFiles = () => {
     input.onchange = async (e) => {
       const uploadedFiles = (e.target as HTMLInputElement).files;
       if (uploadedFiles && uploadedFiles.length > 0) {
+        // Track as a single upload for the whole folder
+        const totalSize = Array.from(uploadedFiles).reduce((sum, f) => sum + f.size, 0);
+        const uploadId = `folder-${Date.now()}`;
+        setUploads((prev) => [
+          ...prev,
+          {
+            id: uploadId,
+            name: 'Folder Upload',
+            size: totalSize,
+            progress: 0,
+            status: 'uploading',
+          },
+        ]);
         try {
-          await uploadFolder.mutateAsync({ files: uploadedFiles, parentId: currentFolderId || undefined });
-          toast({ title: "Folder uploaded", description: `Folder uploaded successfully.` });
+          await uploadFolder.mutateAsync({
+            files: uploadedFiles,
+            parentId: currentFolderId || undefined,
+            onUploadProgress: (event) => {
+              const percent = event.total ? Math.round((event.loaded / event.total) * 100) : 0;
+              updateUpload(uploadId, percent);
+            },
+          });
+          updateUpload(uploadId, 100, 'completed');
+          setTimeout(() => removeUpload(uploadId), 2000);
         } catch (error) {
-          toast({ title: "Error uploading folder", description: "Failed to upload folder. Please try again.", variant: "destructive" });
+          updateUpload(uploadId, 0, 'error', 'Upload failed');
         }
       }
     };
@@ -255,6 +291,12 @@ const UserFiles = () => {
         items={sortedItems}
         onItemClick={handleItemClick}
         onDownload={handleDownload}
+      />
+
+      <UploadProgress
+        uploads={uploads}
+        onCancel={removeUpload}
+        onDismiss={removeUpload}
       />
 
       {/* File View Modal */}

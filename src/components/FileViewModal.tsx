@@ -94,11 +94,11 @@ const FilePreview = ({ file }: { file: FileItem }) => {
     return (
       <div className="h-96 bg-muted/30 rounded-lg overflow-hidden">
         {file.webViewLink ? (
-          <iframe 
+        <iframe 
             src={file.webViewLink}
-            className="w-full h-full border-0"
-            title={file.name}
-          />
+          className="w-full h-full border-0"
+          title={file.name}
+        />
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
@@ -124,13 +124,13 @@ const FilePreview = ({ file }: { file: FileItem }) => {
 
   // Text files - try to fetch content from webContentLink
   if (mimeType.startsWith('text/') || fileType.includes('text') || fileType.includes('json') || fileType.includes('xml') || fileType.includes('csv')) {
-    return (
-      <ScrollArea className="h-96 bg-muted/30 rounded-lg p-4">
+      return (
+        <ScrollArea className="h-96 bg-muted/30 rounded-lg p-4">
         <pre className="text-sm whitespace-pre-wrap font-mono">
           <TextFileViewer url={file.webContentLink} />
         </pre>
-      </ScrollArea>
-    );
+        </ScrollArea>
+      );
   }
 
   // Office documents and other files
@@ -280,15 +280,15 @@ export function FileViewModal({
                 </div>
               ) : (
                 <>
-                  <h3 className="text-lg font-medium">{file.name}</h3>
-                  <div className="flex items-center space-x-2 mt-1">
-                    {file.fileType && (
-                      <Badge variant="secondary" className={getFileTypeColor(file.fileType)}>
-                        {file.fileType}
-                      </Badge>
-                    )}
-                    <span className="text-sm text-muted-foreground">{file.size || 'Unknown size'}</span>
-                  </div>
+              <h3 className="text-lg font-medium">{file.name}</h3>
+              <div className="flex items-center space-x-2 mt-1">
+                {file.fileType && (
+                  <Badge variant="secondary" className={getFileTypeColor(file.fileType)}>
+                    {file.fileType}
+                  </Badge>
+                )}
+                <span className="text-sm text-muted-foreground">{file.size || 'Unknown size'}</span>
+              </div>
                 </>
               )}
             </div>

@@ -27,8 +27,8 @@ const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.Re
   if (!user) {
     return <Navigate to="/" replace />;
   }
-  
-  if (requireAdmin && user.role !== 'admin') {
+  // Accept both ADMIN and SUPER_ADMIN for admin routes
+  if (requireAdmin && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -93,7 +93,7 @@ const AppRoutes = () => {
           
           {/* Redirect root to appropriate dashboard */}
           <Route path="/" element={
-            <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/dashboard'} replace />
+            <Navigate to={user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' ? '/admin/dashboard' : '/dashboard'} replace />
           } />
         </>
       ) : (

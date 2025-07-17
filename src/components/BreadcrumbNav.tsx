@@ -18,8 +18,8 @@ export function BreadcrumbNav({ items, onNavigate }: BreadcrumbNavProps) {
             size="sm"
             onClick={() => onNavigate(item.id === null ? '/' : item.id)}
             className={`h-auto p-1 hover:bg-muted ${
-              index === items.length - 1
-                ? 'text-foreground font-medium'
+              index === items.length - 1 
+                ? 'text-foreground font-medium' 
                 : 'text-muted-foreground'
             }`}
           >
