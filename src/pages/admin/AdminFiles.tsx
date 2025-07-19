@@ -11,6 +11,7 @@ import {
   useFolderByIdQuery,
   useCreateFolderMutation,
   useUploadFileMutation,
+  useUploadFolderMutation,
   useDeleteFileMutation,
 } from "@/api/files";
 import { useQueryClient } from "@tanstack/react-query";
@@ -41,6 +42,7 @@ const AdminFiles = () => {
   );
   const createFolderMutation = useCreateFolderMutation();
   const uploadFileMutation = useUploadFileMutation();
+  const uploadFolderMutation = useUploadFolderMutation();
   const deleteFileMutation = useDeleteFileMutation();
 
   const queryClient = useQueryClient();
@@ -197,8 +199,29 @@ const AdminFiles = () => {
   };
 
   const handleUploadFolder = () => {
-    // Not implemented: folder upload UI
-    alert("Folder upload not implemented in this UI.");
+    const input = document.createElement("input");
+    input.type = "file";
+    input.multiple = true;
+    input.webkitdirectory = true; // Enable directory selection
+    input.onchange = async (e) => {
+      const selectedFolder = {
+        name:
+          (e.target as HTMLInputElement).files?.[0]?.webkitRelativePath?.split(
+            "/"
+          )[0] || "",
+        files: (e.target as HTMLInputElement).files,
+      };
+      await uploadFolderMutation.mutateAsync({
+        files: selectedFolder.files,
+        selectedFolder,
+        parentId: currentFolder ? currentFolder.id : undefined,
+        onUploadProgress(event: ProgressEvent) {
+          event.total ? Math.round((event.loaded / event.total) * 100) : 0;
+          // updateUpload(uploadId, percent);
+        },
+      });
+    };
+    input.click();
   };
 
   const handleNewFolder = () => {
