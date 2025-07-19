@@ -1,25 +1,39 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'react-router-dom';
-import { Loader2, HardDrive } from 'lucide-react';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
+import { Loader2, HardDrive } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const LoginForm: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"admin" | "member">("" as any);
+  const [error, setError] = useState("");
   const { login, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
-    const result = await login(email, password);
-    if (typeof result === 'string') {
+    const result = await login(email, password, role);
+    if (typeof result === "string") {
       setError(result);
     }
   };
@@ -34,8 +48,12 @@ export const LoginForm: React.FC = () => {
               <HardDrive className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">File Management</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Secure document management system</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+            File Management
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Secure document management system
+          </p>
         </div>
 
         {/* Login Form */}
@@ -49,7 +67,9 @@ export const LoginForm: React.FC = () => {
           <CardContent className="pt-0 space-y-3 sm:space-y-4">
             <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <div className="space-y-1 sm:space-y-2">
-                <Label htmlFor="email" className="text-sm">Email</Label>
+                <Label htmlFor="email" className="text-sm">
+                  Email
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -62,7 +82,9 @@ export const LoginForm: React.FC = () => {
               </div>
 
               <div className="space-y-1 sm:space-y-2">
-                <Label htmlFor="password" className="text-sm">Password</Label>
+                <Label htmlFor="password" className="text-sm">
+                  Password
+                </Label>
                 <Input
                   id="password"
                   type="password"
@@ -74,9 +96,30 @@ export const LoginForm: React.FC = () => {
                 />
               </div>
 
+              <div className="space-y-1 sm:space-y-2">
+                <Label htmlFor="login-role" className="text-sm">
+                  Login As:
+                </Label>
+                <Select
+                  value={role}
+                  name="login-role"
+                  onValueChange={(value) => setRole(value as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="member">Member</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {error && (
                 <Alert variant="destructive" className="py-2 sm:py-3">
-                  <AlertDescription className="text-xs sm:text-sm">{error}</AlertDescription>
+                  <AlertDescription className="text-xs sm:text-sm">
+                    {error}
+                  </AlertDescription>
                 </Alert>
               )}
 
@@ -91,13 +134,16 @@ export const LoginForm: React.FC = () => {
                     Signing in...
                   </>
                 ) : (
-                  'Sign In'
+                  "Sign In"
                 )}
               </Button>
             </form>
             <p className="text-center text-sm text-muted-foreground">
-              Don't have an account?{' '}
-              <Link to="/signup" className="font-semibold text-primary hover:underline">
+              Don't have an account?{" "}
+              <Link
+                to="/signup"
+                className="font-semibold text-primary hover:underline"
+              >
                 Sign Up
               </Link>
             </p>

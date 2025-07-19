@@ -20,10 +20,11 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
-  const login = async (email, password) => {
+  const login = async (email, password, role: "admin" | "member" = "admin") => {
     setIsLoading(true);
     try {
-      const response = await apiV1.post("/auth/login", { email, password });
+      const endpoint = role === "admin" ? `/auth/login` : `/auth/member/login`;
+      const response = await apiV1.post(endpoint, { email, password });
       const { user, token } = response.data.data;
       setUser(user);
       setToken(token);
@@ -72,8 +73,7 @@ export const AuthProvider = ({ children }) => {
         phoneNumber,
         password,
       });
-      // Automatically log in the user after successful registration
-      await login(email, password);
+      navigate("/");
       setIsLoading(false);
       return true;
     } catch (error) {
