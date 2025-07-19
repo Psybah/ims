@@ -2,8 +2,9 @@
 
 export interface FileItem {
   id: string;
-  name: string;
-  type: 'file' | 'folder';
+  name?: string;
+  fileName?: string;
+  type: "file" | "folder";
   fileType?: string;
   fileSize?: number;
   filePath?: string;
@@ -32,4 +33,4 @@ export interface User {
   phoneNumber: string | null;
   createdAt: string;
   updatedAt: string;
-} 
+}
