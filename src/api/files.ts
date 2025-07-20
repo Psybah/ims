@@ -27,38 +27,38 @@ export const uploadFile = (
 };
 
 export const uploadFolder = (
-  files: FileList,
+  fileList: FileList,
   selectedFolder: any,
   parentId?: string,
   onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
 ) => {
-  const formData = new FormData();
-  formData.append("folderName", selectedFolder.name);
+  const files: File[] = Array.from(fileList);
 
-  if (parentId) {
-    formData.append("parentId", parentId);
-  }
+  const formData = new FormData();
 
   const structure = {};
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
 
-    formData.append("files[]", file);
+    formData.append("files", file);
 
-    const relativePath =
-      file.webkitRelativePath || `${selectedFolder.name}/${file.name}`;
-
-    formData.append(`filePaths[${i}]`, relativePath);
+    const relativePath = file.webkitRelativePath || file.name;
+    const pathParts = relativePath.split("/");
+    const fileName = pathParts.pop(); // Get the file name
+    const folderPath = "/" + pathParts.join("/");
 
     structure[relativePath] = {
-      name: file.name,
-      path: `/${selectedFolder.name}`,
+      path: folderPath === "/" ? "" : folderPath,
+      name: `/${fileName}`,
     };
   }
 
-  formData.append("structure", JSON.stringify(structure));
-  const url = `/files/upload/folder?resourceType=FOLDER`;
+  formData.append("folderStructure", JSON.stringify(structure));
+
+  const url = parentId
+    ? `/files/upload/folder/${parentId}?resourceType=FOLDER`
+    : `/files/upload/folder?resourceType=FOLDER`;
   return apiV2.post(url, formData, {
     headers: { "Content-Type": "multipart/form-data" },
     onUploadProgress,

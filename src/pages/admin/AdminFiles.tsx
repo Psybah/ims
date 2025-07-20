@@ -130,20 +130,36 @@ const AdminFiles = () => {
   };
 
   // Upload logic
-  const addUpload = (file: File) => {
+  const addUpload = (file: File | { name: string }) => {
     const id = `${file.name}-${Date.now()}`;
-    setUploads((prev) => [
-      ...prev,
-      {
-        id,
-        name: file.name,
-        size: file.size,
-        progress: 0,
-        status: "uploading",
-      },
-    ]);
+    if (file instanceof File) {
+      setUploads((prev) => [
+        ...prev,
+        {
+          id,
+          name: file.name,
+          size: file.size,
+          progress: 0,
+          status: "uploading",
+          type: "file",
+        },
+      ]);
+    } else {
+      setUploads((prev) => [
+        ...prev,
+        {
+          id,
+          name: file.name,
+          size: 0,
+          progress: 0,
+          status: "uploading",
+          type: "folder",
+        },
+      ]);
+    }
     return id;
   };
+
   const updateUpload = (
     id: string,
     progress: number,
@@ -154,6 +170,7 @@ const AdminFiles = () => {
       prev.map((u) => (u.id === id ? { ...u, progress, status, error } : u))
     );
   };
+
   const removeUpload = (id: string) => {
     setUploads((prev) => prev.filter((u) => u.id !== id));
   };
@@ -211,15 +228,34 @@ const AdminFiles = () => {
           )[0] || "",
         files: (e.target as HTMLInputElement).files,
       };
-      await uploadFolderMutation.mutateAsync({
-        files: selectedFolder.files,
-        selectedFolder,
-        parentId: currentFolder ? currentFolder.id : undefined,
-        onUploadProgress(event: ProgressEvent) {
-          event.total ? Math.round((event.loaded / event.total) * 100) : 0;
-          // updateUpload(uploadId, percent);
-        },
-      });
+
+      const uploadId = addUpload({ name: selectedFolder.name });
+
+      try {
+        await uploadFolderMutation.mutateAsync({
+          files: selectedFolder.files,
+          selectedFolder,
+          parentId: currentFolder ? currentFolder.id : undefined,
+          onUploadProgress(event: ProgressEvent) {
+            const percent = event.total
+              ? Math.round((event.loaded / event.total) * 100)
+              : 0;
+            updateUpload(uploadId, percent);
+          },
+        });
+
+        updateUpload(uploadId, 100, "completed");
+
+        queryClient.refetchQueries({
+          queryKey: ["folder", currentFolder?.id || ""],
+          exact: true,
+          type: "active",
+        });
+      } catch (err) {
+        updateUpload(uploadId, 0, "error", "Upload failed");
+      }
+
+      setTimeout(() => removeUpload(uploadId), 2000);
     };
     input.click();
   };
