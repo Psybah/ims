@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -68,7 +69,7 @@ export const SignupForm: React.FC = () => {
 
               <div className="space-y-1 sm:space-y-2">
                 <Label htmlFor="password" className="text-sm">Password</Label>
-                <Input id="password" type="password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-10 sm:h-11 text-sm sm:text-base" />
+                <PasswordInput id="password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-10 sm:h-11 text-sm sm:text-base" />
               </div>
 
               {error && (

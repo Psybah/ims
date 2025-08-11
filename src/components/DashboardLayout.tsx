@@ -3,14 +3,7 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { LogOut, Bell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -43,11 +36,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               </div>
 
               <div className="flex items-center space-x-1 sm:space-x-4">
-                {/* Notifications - only show on mobile */}
-                <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:hidden">
-                  <Bell className="w-4 h-4" />
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full"></span>
-                </Button>
 
                 {/* User Menu */}
                 <DropdownMenu>
@@ -59,8 +47,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
                         </AvatarFallback>
                       </Avatar>
                       {/* Hide email text on desktop/tablet, only show on mobile */}
-                      <div className="ml-1 sm:ml-2 text-left block sm:hidden">
+                      <div className="ml-1 sm:ml-2 text-left block sm:hidden md:truncate md:max-w-[200px]">
                         <p className="text-sm font-medium leading-none">{user?.name}</p>
+                      </div>
+                      <div className="hidden sm:block text-left">
                         <p className="text-xs text-muted-foreground leading-none mt-1">
                           {user?.email}
                         </p>

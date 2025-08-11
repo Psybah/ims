@@ -33,19 +33,17 @@ const AdminFiles = () => {
   const [uploads, setUploads] = useState<any[]>([]);
 
   // Backend data
+  const queryClient = useQueryClient();
   const { data: rootFolders, isLoading: loadingRoot } = useFoldersQuery();
   const { data: folderData, isLoading: loadingFolder } = useFolderByIdQuery(
-    currentFolder?.id || "",
-    {
-      enabled: !!currentFolder,
-    }
+    currentFolder?.id || ""
   );
+
+  // Mutations
   const createFolderMutation = useCreateFolderMutation();
   const uploadFileMutation = useUploadFileMutation();
   const uploadFolderMutation = useUploadFolderMutation();
   const deleteFileMutation = useDeleteFileMutation();
-
-  const queryClient = useQueryClient();
 
   // Type guards for folderData
   const folderChildren: FileItem[] =
@@ -53,7 +51,7 @@ const AdminFiles = () => {
       ? (folderData as any).children
       : [];
   const folderFiles: FileItem[] =
-    folderData && Array.isArray((folderData as any).files)
+    folderData && Array.isArray((folderData as any).files)   
       ? (folderData as any).files
       : [];
   const folders: FileItem[] = currentFolder
@@ -61,6 +59,7 @@ const AdminFiles = () => {
     : (rootFolders as FileItem[]) || [];
   const files: FileItem[] = currentFolder ? folderFiles : [];
   const items: FileItem[] = [...folders, ...files];
+
   // Search and sort logic
   const filteredItems = items.filter((item) => {
     if (item.name) {
@@ -68,8 +67,9 @@ const AdminFiles = () => {
     } else if (item.fileName) {
       return item.fileName.toLowerCase().includes(searchTerm.toLowerCase());
     }
-    return false; // Explicitly handle case where neither name nor fileName exists
+    return false;
   });
+
   const sortItems = (
     itemsToSort: FileItem[],
     sortByKey: "name" | "modified" | "size",
@@ -95,6 +95,7 @@ const AdminFiles = () => {
       return 0;
     });
   };
+
   const sortedItems = sortItems(filteredItems, sortBy, sortOrder);
 
   // Breadcrumb navigation
@@ -129,34 +130,36 @@ const AdminFiles = () => {
     }
   };
 
-  // Upload logic
-  const addUpload = (file: File | { name: string }) => {
-    const id = `${file.name}-${Date.now()}`;
-    if (file instanceof File) {
-      setUploads((prev) => [
-        ...prev,
-        {
-          id,
-          name: file.name,
-          size: file.size,
-          progress: 0,
-          status: "uploading",
-          type: "file",
-        },
-      ]);
-    } else {
-      setUploads((prev) => [
-        ...prev,
-        {
-          id,
-          name: file.name,
-          size: 0,
-          progress: 0,
-          status: "uploading",
-          type: "folder",
-        },
-      ]);
+  // Download handler
+  const handleDownload = (item: FileItem) => {
+    if (item.webContentLink) {
+      window.open(item.webContentLink, "_blank");
     }
+  };
+
+  // Sort handler
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field as "name" | "modified" | "size");
+      setSortOrder("asc");
+    }
+  };
+
+  // Upload handlers
+  const addUpload = (file: any) => {
+    const id = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setUploads((prev) => [
+      ...prev,
+      {
+        id,
+        name: file.name,
+        size: file.size || 0,
+        progress: 0,
+        status: "uploading",
+      },
+    ]);
     return id;
   };
 
@@ -167,32 +170,42 @@ const AdminFiles = () => {
     error?: string
   ) => {
     setUploads((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, progress, status, error } : u))
+      prev.map((upload) =>
+        upload.id === id
+          ? { ...upload, progress, status, error }
+          : upload
+      )
     );
   };
 
   const removeUpload = (id: string) => {
-    setUploads((prev) => prev.filter((u) => u.id !== id));
+    setUploads((prev) => prev.filter((upload) => upload.id !== id));
   };
 
+  const handleCancelUpload = (uploadId: string) => {
+    // Cancel upload logic here
+    removeUpload(uploadId);
+  };
+
+  const handleDismissUpload = (uploadId: string) => {
+    removeUpload(uploadId);
+  };
+
+  // File upload handler
   const handleUpload = () => {
     const input = document.createElement("input");
     input.type = "file";
     input.multiple = true;
     input.onchange = async (e) => {
-      const uploadedFiles = Array.from(
-        (e.target as HTMLInputElement).files || []
-      );
-      if (uploadedFiles.length > 0) {
-        for (const file of uploadedFiles) {
+      const files = (e.target as HTMLInputElement).files;
+      if (files) {
+        for (const file of Array.from(files)) {
           const uploadId = addUpload(file);
           try {
             await uploadFileMutation.mutateAsync({
               file,
-              parentId: currentFolder
-                ? currentFolder.id || undefined
-                : undefined,
-              onUploadProgress: (event: ProgressEvent) => {
+              parentId: currentFolder ? currentFolder.id : undefined,
+              onUploadProgress(event: ProgressEvent) {
                 const percent = event.total
                   ? Math.round((event.loaded / event.total) * 100)
                   : 0;
@@ -200,11 +213,14 @@ const AdminFiles = () => {
               },
             });
             updateUpload(uploadId, 100, "completed");
-            queryClient.refetchQueries({
-              queryKey: ["folder", currentFolder?.id || ""],
-              exact: true,
-              type: "active",
-            });
+            
+            // Invalidate and refetch queries to show new files
+            if (currentFolder) {
+              queryClient.invalidateQueries({ queryKey: ["folder", currentFolder.id] });
+            } else {
+              queryClient.invalidateQueries({ queryKey: ["folders"] });
+            }
+            
             setTimeout(() => removeUpload(uploadId), 2000);
           } catch (error) {
             updateUpload(uploadId, 0, "error", "Upload failed");
@@ -219,7 +235,7 @@ const AdminFiles = () => {
     const input = document.createElement("input");
     input.type = "file";
     input.multiple = true;
-    input.webkitdirectory = true; // Enable directory selection
+    input.webkitdirectory = true;
     input.onchange = async (e) => {
       const selectedFolder = {
         name:
@@ -246,65 +262,66 @@ const AdminFiles = () => {
 
         updateUpload(uploadId, 100, "completed");
 
-        queryClient.refetchQueries({
-          queryKey: ["folder", currentFolder?.id || ""],
-          exact: true,
-          type: "active",
-        });
+        // Invalidate and refetch queries to show new files
+        if (currentFolder) {
+          queryClient.invalidateQueries({ queryKey: ["folder", currentFolder.id] });
+        } else {
+          queryClient.invalidateQueries({ queryKey: ["folders"] });
+        }
+        
+        setTimeout(() => removeUpload(uploadId), 2000);
       } catch (err) {
         updateUpload(uploadId, 0, "error", "Upload failed");
       }
-
-      setTimeout(() => removeUpload(uploadId), 2000);
     };
     input.click();
   };
 
-  const handleNewFolder = () => {
+  // New folder handler
+  const handleNewFolder = async () => {
     const folderName = prompt("Enter folder name:");
-    if (folderName && folderName.trim()) {
-      createFolderMutation.mutate({
-        folderName: folderName.trim(),
-        parentId: currentFolder ? currentFolder.id || undefined : undefined,
-      });
+    if (folderName) {
+      try {
+        await createFolderMutation.mutateAsync({
+          folderName,
+          parentId: currentFolder ? currentFolder.id : undefined,
+        });
+        
+        // Invalidate and refetch queries to show new folder
+        if (currentFolder) {
+          queryClient.invalidateQueries({ queryKey: ["folder", currentFolder.id] });
+        } else {
+          queryClient.invalidateQueries({ queryKey: ["folders"] });
+        }
+      } catch (error) {
+        console.error("Failed to create folder:", error);
+      }
     }
   };
 
+  // Starred handler
   const handleStarred = () => {
-    alert("Starred files not implemented in this UI.");
+    // Implement starred functionality
   };
-
-  const handleDownload = (item: FileItem) => {
-    window.open(item.webContentLink, "_blank");
-  };
-
-  const handleSort = (newSortBy: "name" | "modified" | "size") => {
-    if (sortBy === newSortBy) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(newSortBy);
-      setSortOrder("asc");
-    }
-  };
-
-  // Upload progress handlers
-  const handleCancelUpload = (id: string) => removeUpload(id);
-  const handleDismissUpload = (id: string) => removeUpload(id);
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">File Management</h1>
-          <BreadcrumbNav items={breadcrumbs} onNavigate={handleNavigate} />
-        </div>
+    <div className="space-y-4">
+      {/* Upload buttons at the top - full width on mobile, top right on desktop */}
+      <div className="w-full sm:flex sm:justify-end">
         <FileToolbar
           onUpload={handleUpload}
           onUploadFolder={handleUploadFolder}
-          onNewFolder={handleNewFolder}
+          onNewFolder={handleNewFolder}      
           onStarred={handleStarred}
         />
       </div>
+
+      {/* Breadcrumb navigation below upload buttons */}
+      <BreadcrumbNav
+        items={breadcrumbs}
+        onNavigate={handleNavigate}
+      />
+
       <FileSearchSort
         searchTerm={searchTerm}
         onSearch={setSearchTerm}
@@ -312,13 +329,16 @@ const AdminFiles = () => {
         sortOrder={sortOrder}
         onSort={handleSort}
       />
-      {loadingRoot || loadingFolder ? (
+      {loadingRoot || loadingFolder ? (      
         <div>Loading...</div>
       ) : (
         <FileList
           items={sortedItems}
           onItemClick={handleItemClick}
           onDownload={handleDownload}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={handleSort}
         />
       )}
       <FileViewModal

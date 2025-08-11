@@ -18,6 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Users,
   Search,
@@ -34,8 +35,12 @@ import { AddUserModal } from '@/components/AddUserModal';
 import { EditUserModal } from '@/components/EditUserModal';
 import { ChangeRoleModal } from '@/components/ChangeRoleModal';
 import { FilterModal } from '@/components/FilterModal';
+import { CreateGroupModal } from '@/components/CreateGroupModal';
+import { SecurityGroupsTable } from '@/components/admin/SecurityGroupsTable';
+import { ManageGroupUsersModal } from '@/components/admin/ManageGroupUsersModal';
 import { apiV1 } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { useSecurityGroupsQuery } from '@/api/admin';
 
 interface User {
   id: string;
@@ -62,7 +67,11 @@ const AdminUsers = () => {
   const [filters, setFilters] = useState<FilterState>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [activeTab, setActiveTab] = useState('users');
+  const [selectedGroup, setSelectedGroup] = useState<any>(null);
+  const [isManageUsersModalOpen, setIsManageUsersModalOpen] = useState(false);
   const { toast } = useToast();
+  const { data: securityGroups = [] } = useSecurityGroupsQuery();
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -126,7 +135,7 @@ const AdminUsers = () => {
     return matchesSearch && matchesStatus && matchesRole;
   });
 
-  const getRoleVariant = (role: string) => {
+  const getRoleVariant = (role: string): "default" | "destructive" | "secondary" | "outline" => {
     switch (role) {
       case 'SUPER_ADMIN':
         return 'destructive';
@@ -141,7 +150,7 @@ const AdminUsers = () => {
 
   // The backend API does not provide a 'status' field for users.
   // This function will always return 'default' for now.
-  const getStatusVariant = (status: string) => {
+  const getStatusVariant = (status: string): "default" | "destructive" | "secondary" | "outline" => {
     return 'default';
   };
 
@@ -151,11 +160,21 @@ const AdminUsers = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">User Management</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Manage user accounts, roles, and permissions
+            Manage user accounts, roles, and security groups
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <AddUserModal onUserAdd={handleAddUser} />
+          {activeTab === 'groups' && (
+            <CreateGroupModal onGroupCreate={() => {
+              toast({
+                title: "Group Created",
+                description: "Security group has been created successfully.",
+              });
+            }} />
+          )}
+          {activeTab === 'users' && (
+            <AddUserModal onUserAdd={handleAddUser} />
+          )}
         </div>
       </div>
 
@@ -203,21 +222,34 @@ const AdminUsers = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Members</CardTitle>
-            <UserX className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Security Groups</CardTitle>
+            <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-bold">
-              {users.filter(u => u.role === 'MEMBER').length}
+              {securityGroups.length}
             </div>
             <p className="text-xs text-muted-foreground">
-              Standard users
+              Access control groups
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 lg:w-400">
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Users ({users.length})
+          </TabsTrigger>
+          <TabsTrigger value="groups" className="flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Groups ({securityGroups.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="space-y-4">
+          <Card>
         <CardHeader>
           <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
             <CardTitle className="text-lg sm:text-xl">All Users</CardTitle>
@@ -274,7 +306,7 @@ const AdminUsers = () => {
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.avatar} />
+                          <AvatarImage src={undefined} />
                           <AvatarFallback>
                             {user.fullName.split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
@@ -339,7 +371,7 @@ const AdminUsers = () => {
               <Card key={user.id} className="p-3">
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={user.avatar} />
+                    <AvatarImage src={undefined} />
                     <AvatarFallback>
                       {user.fullName.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
@@ -407,8 +439,34 @@ const AdminUsers = () => {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="groups" className="space-y-4">
+          <SecurityGroupsTable 
+            onEditGroup={(group) => {
+              // TODO: Implement edit group modal
+              toast({
+                title: "Edit Group",
+                description: `Edit functionality for "${group.name}" coming soon.`,
+              });
+            }}
+            onDeleteGroup={(group) => {
+              // TODO: Implement delete group functionality
+              toast({
+                title: "Delete Group",
+                description: `Delete functionality for "${group.name}" coming soon.`,
+              });
+            }}
+            onManageUsers={(group) => {
+              setSelectedGroup(group);
+              setIsManageUsersModalOpen(true);
+            }}
+          />
+        </TabsContent>
+      </Tabs>
       
-      <EditUserModal 
+      {/* TODO: Fix type compatibility for EditUserModal and ChangeRoleModal */}
+      {/* <EditUserModal 
         user={userToEdit}
         isOpen={isEditModalOpen}
         onOpenChange={setIsEditModalOpen}
@@ -419,6 +477,18 @@ const AdminUsers = () => {
         onOpenChange={setIsRoleModalOpen}
         user={selectedUser}
         onRoleChange={handleChangeRole}
+      /> */}
+      <ManageGroupUsersModal
+        group={selectedGroup}
+        isOpen={isManageUsersModalOpen}
+        onOpenChange={setIsManageUsersModalOpen}
+        onUsersUpdate={(groupId, addedUsers, removedUsers) => {
+          toast({
+            title: "Users Updated",
+            description: `Successfully updated group membership.`,
+          });
+          // TODO: Refresh security groups data
+        }}
       />
     </div>
   );

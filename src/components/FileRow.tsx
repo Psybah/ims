@@ -44,31 +44,45 @@ export function FileRow({ item, onItemClick, onDownload }: FileRowProps) {
   const itemName = item.name ? item.name : item.fileName;
 
   return (
-    <div className="border-b hover:bg-muted/50 cursor-pointer transition-colors group">
+    <div className="border-b hover:bg-muted/50 cursor-pointer transition-colors group overflow-hidden">
       {/* Mobile Layout */}
-      <div className="lg:hidden p-3 sm:p-4" onClick={() => onItemClick(item)}>
+      <div className="lg:hidden p-2 sm:p-3" onClick={() => onItemClick(item)}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-            {getFileIcon(item)}
-            <div className="min-w-0 flex-1">
+          <div className="flex items-center min-w-0 flex-1">
+            <div className="flex-shrink-0 mr-2 sm:mr-3">
+              {getFileIcon(item)}
+            </div>
+            <div className="min-w-0 flex-1 overflow-hidden">
               <p className="text-sm sm:text-base font-medium truncate">
                 {itemName}
               </p>
-              <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
-                <span>{item.type === "folder" ? "Folder" : item.fileType}</span>
+              <div className="flex flex-wrap items-center gap-x-1.5 text-xs sm:text-sm text-muted-foreground">
+                <span className="truncate max-w-[100px] sm:max-w-none">
+                  {item.type === "folder" ? "Folder" : item.fileType}
+                </span>
                 {item.fileSize && (
                   <>
                     <span>•</span>
-                    <span>{(item.fileSize / 1024).toFixed(2)} KB</span>
+                    <span className="whitespace-nowrap">
+                      {item.fileSize > 1024 
+                        ? `${(item.fileSize / 1024).toFixed(1)} MB` 
+                        : `${item.fileSize} KB`}
+                    </span>
                   </>
                 )}
                 <span>•</span>
-                <span>{new Date(item.updatedAt).toLocaleDateString()}</span>
+                <span className="whitespace-nowrap">
+                  {new Date(item.updatedAt).toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    year: new Date().getFullYear() !== new Date(item.updatedAt).getFullYear() ? '2-digit' : undefined
+                  })}
+                </span>
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-1">
-            <Badge variant="outline" className="text-xs">
+          <div className="flex-shrink-0 ml-2">
+            <Badge variant="outline" className="hidden xs:inline-flex text-[10px] h-5">
               Private
             </Badge>
             <DropdownMenu>
@@ -76,9 +90,9 @@ export function FileRow({ item, onItemClick, onDownload }: FileRowProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 sm:h-8 sm:w-8 p-0"
+                  className="h-7 w-7 p-0 flex-shrink-0"
                 >
-                  <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <MoreVertical className="w-3.5 h-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent

@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { apiV1 } from "@/lib/api";
+import { useSecurityGroupsQuery, useUsersQuery } from "@/api/admin";
 import { BreadcrumbNav } from "@/components/BreadcrumbNav";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,38 +18,12 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import {
-  Folder,
-  File as FileIcon,
-  ChevronDown,
-  ChevronRight,
-  Plus,
-  Edit,
-  Trash2,
-  Users,
-  User,
-  MoreVertical,
-  Check,
-  ChevronLeft,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  TableCaption,
-} from "@/components/ui/table";
+import { Folder, Plus, Users, Check } from "lucide-react";
+
 import { EmptyState } from "@/components/EmptyState";
 import { PermissionsTable } from "@/components/admin/PermissionsTable";
 import { VSCodeFolderTree } from "@/components/admin/VSCodeFolderTree";
+import { AddPermissionModal } from "@/components/AddPermissionModal";
 import { useSidebar } from "@/components/ui/sidebar";
 import {
   fetchFolderById,
@@ -130,17 +107,16 @@ const mockFolders: TreeNode[] = [
     ],
   },
 ];
-const mockGroups = [
-  { id: "g1", name: "Finance Team" },
-  { id: "g2", name: "HR Team" },
-  { id: "g3", name: "Executives" },
-];
-const mockUsers = [
-  { id: "u1", name: "Alice Johnson" },
-  { id: "u2", name: "Bob Smith" },
-  { id: "u3", name: "Carol Lee" },
-  { id: "u4", name: "David Kim" },
-];
+// Remove mock groups - will use real security groups from API
+interface SystemUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  phoneNumber: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 const mockPermissions: MockPermission[] = [
   {
     resourceId: "finance",
@@ -227,13 +203,35 @@ function InheritanceIndicator({ inherited }) {
 }
 
 export default function AdminPermissions() {
+  const { toast } = useToast();
+  
+  // Fetch real users and security groups from backend
+  const { data: usersData, isLoading: usersLoading, error: usersError } = useUsersQuery();
+  const { data: securityGroupsData, isLoading: groupsLoading, error: groupsError } = useSecurityGroupsQuery();
+
+  // Convert backend data to format expected by permissions system
+  const users = usersData?.map(user => ({
+    id: user.id,
+    name: user.fullName,
+    email: user.email,
+    role: user.role,
+    phoneNumber: user.phoneNumber,
+  })) || [];
+
+  const securityGroups = securityGroupsData?.map(group => ({
+    id: group.id,
+    name: group.name,
+    description: group.description,
+  })) || [];
+
+  const isLoading = usersLoading || groupsLoading;
+
   const { setOpen } = useSidebar();
-  const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editPermission, setEditPermission] = useState<MockPermission | null>(
     null
   );
-  // Add/Edit dialog state
+  // Edit dialog state
   const [selectedSubjectType, setSelectedSubjectType] = useState<
     "user" | "group"
   >("user");
@@ -275,12 +273,12 @@ export default function AdminPermissions() {
   const currentFolder = null;
 
   const folderChildren: TreeNode[] =
-    folderData && Array.isArray((folderData as any).children)
-      ? (folderData as any).children
+    folderData && Array.isArray((folderData as Record<string, unknown>).children)
+      ? (folderData as Record<string, TreeNode[]>).children
       : [];
   const folderFiles: TreeNode[] =
-    folderData && Array.isArray((folderData as any).files)
-      ? (folderData as any).files
+    folderData && Array.isArray((folderData as Record<string, unknown>).files)
+      ? (folderData as Record<string, TreeNode[]>).files
       : [];
   const folders: TreeNode[] = currentFolder
     ? folderChildren
@@ -354,9 +352,17 @@ export default function AdminPermissions() {
               onNavigate={(id) => setSelectedResourceId(id)}
             />
           </div>
-          <Button onClick={() => setShowAddDialog(true)} variant="default">
-            <Plus className="w-4 h-4 mr-2" /> Add Permission
-          </Button>
+          <AddPermissionModal 
+            resourceId={selectedResourceId}
+            resourceName={selectedResourceId || "selected item"}
+            onPermissionAdd={(newPermission) => {
+              setPermissions((prev) => [...prev, newPermission]);
+              toast({
+                title: "Permission added",
+                description: "Permission has been successfully added.",
+              });
+            }}
+          />
         </div>
         {resourcePerms.length === 0 ? (
           <EmptyState
@@ -364,13 +370,13 @@ export default function AdminPermissions() {
             title="No Permissions Yet"
             description="No users or groups have explicit permissions for this file or folder. Add a permission to get started."
             actionLabel="Add Permission"
-            onAction={() => setShowAddDialog(true)}
+            onAction={() => {}}
           />
         ) : (
           <PermissionsTable
             permissions={tablePermissions}
-            groups={mockGroups}
-            users={mockUsers}
+            groups={securityGroups}
+            users={users}
             onEdit={(perm) => {
               const fullPerm = resourcePerms.find(
                 (rp) =>
@@ -401,107 +407,7 @@ export default function AdminPermissions() {
           />
         )}
       </div>
-      {/* Add Permission Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Permission</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="block mb-1 font-medium">Type</label>
-              <Select
-                value={selectedSubjectType}
-                onValueChange={(value) =>
-                  setSelectedSubjectType(value as "user" | "group")
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="group">Group</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block mb-1 font-medium">
-                {selectedSubjectType === "user" ? "User" : "Group"}
-              </label>
-              <Select
-                value={selectedSubjectId}
-                onValueChange={setSelectedSubjectId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={`Select ${selectedSubjectType}`} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(selectedSubjectType === "user"
-                    ? mockUsers
-                    : mockGroups
-                  ).map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block mb-1 font-medium">Permissions</label>
-              <div className="flex flex-wrap gap-2">
-                {permissionLevels.map((l) => (
-                  <Button
-                    key={l.value}
-                    type="button"
-                    variant={
-                      selectedPerms.includes(l.value) ? "default" : "outline"
-                    }
-                    size="sm"
-                    className="flex items-center gap-1"
-                    onClick={() =>
-                      setSelectedPerms((prev) =>
-                        prev.includes(l.value)
-                          ? prev.filter((p) => p !== l.value)
-                          : [...prev, l.value]
-                      )
-                    }
-                  >
-                    {selectedPerms.includes(l.value) && (
-                      <Check className="w-3 h-3 mr-1" />
-                    )}
-                    {l.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  // Add logic (mock)
-                  setPermissions((prev) => [
-                    ...prev,
-                    {
-                      resourceId: selectedResourceId,
-                      subjectId: selectedSubjectId,
-                      subjectType: selectedSubjectType,
-                      permissions: selectedPerms,
-                      inherited: false,
-                    },
-                  ]);
-                  setShowAddDialog(false);
-                }}
-              >
-                Add
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+
       {/* Edit Permission Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent>

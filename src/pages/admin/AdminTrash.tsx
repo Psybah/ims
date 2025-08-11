@@ -26,159 +26,149 @@ import {
   SlidersHorizontal,
   Archive,
   AlertTriangle,
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react';
 import { FilterModal } from '@/components/FilterModal';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock data for demonstration
-const mockTrashedFiles = [
-  {
-    id: '1',
-    name: 'Old_Budget_2023.xlsx',
-    type: 'Excel',
-    size: '2.3 MB',
-    deletedBy: 'John Doe',
-    deletedDate: '2024-01-15',
-    originalPath: '/finances/budgets/',
-    retentionDays: 15,
-    avatar: '/placeholder.svg'
-  },
-  {
-    id: '2',
-    name: 'Outdated_Presentation.pptx',
-    type: 'PowerPoint',
-    size: '8.1 MB',
-    deletedBy: 'Jane Smith',
-    deletedDate: '2024-01-12',
-    originalPath: '/marketing/presentations/',
-    retentionDays: 18,
-    avatar: '/placeholder.svg'
-  },
-  {
-    id: '3',
-    name: 'Draft_Report.docx',
-    type: 'Word',
-    size: '1.7 MB',
-    deletedBy: 'Mike Johnson',
-    deletedDate: '2024-01-10',
-    originalPath: '/reports/drafts/',
-    retentionDays: 20,
-    avatar: '/placeholder.svg'
-  },
-  {
-    id: '4',
-    name: 'Test_Images.zip',
-    type: 'Archive',
-    size: '15.2 MB',
-    deletedBy: 'Sarah Wilson',
-    deletedDate: '2024-01-08',
-    originalPath: '/assets/test/',
-    retentionDays: 22,
-    avatar: '/placeholder.svg'
-  },
-];
+import { useTrashItemsQuery, useTrashAnalysisQuery, useRestoreTrashItemMutation } from '@/api/trash';
+import { transformTrashItem, getRetentionStatus, formatFileSize } from '@/lib/trash-utils';
 
 const AdminTrash = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [trashedFiles, setTrashedFiles] = useState(mockTrashedFiles);
-  const [filters, setFilters] = useState<any>({});
+  const [filters, setFilters] = useState({});
   const { toast } = useToast();
 
-  const filteredFiles = trashedFiles.filter(file =>
+  // API Queries
+  const { data: trashItems = [], isLoading: isLoadingTrash, error: trashError } = useTrashItemsQuery();
+  const { data: analysis, isLoading: isLoadingAnalysis, error: analysisError } = useTrashAnalysisQuery();
+  const restoreMutation = useRestoreTrashItemMutation();
+
+  // Transform backend data to frontend format
+  const transformedItems = trashItems.map(transformTrashItem);
+
+  // Filter files based on search term
+  const filteredFiles = transformedItems.filter(file =>
     file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    file.deletedBy.toLowerCase().includes(searchTerm.toLowerCase())
+    file.deletedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    file.originalPath.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const restoreFile = (id: string) => {
-    setTrashedFiles(prev => prev.filter(file => file.id !== id));
-    // Here you would typically make an API call to restore the file
-  };
+  // Calculate analytics
+  const totalFiles = transformedItems.length;
+  const totalSize = transformedItems.reduce((acc, file) => {
+    if (file.size !== 'Folder' && file.size !== 'Unknown') {
+      const sizeInBytes = parseInt(file.size.split(' ')[0]) * 1024; // Rough conversion
+      return acc + sizeInBytes;
+    }
+    return acc;
+  }, 0);
 
-  const permanentlyDelete = (id: string) => {
-    setTrashedFiles(prev => prev.filter(file => file.id !== id));
-    // Here you would typically make an API call to permanently delete the file
-  };
+  const restoreFile = async (id: string) => {
+    const item = transformedItems.find(item => item.id === id);
+    if (!item) return;
 
-  const getRetentionStatus = (days: number) => {
-    if (days <= 7) {
-      return { variant: 'destructive' as const, text: `${days} days left`, urgent: true };
-    } else if (days <= 14) {
-      return { variant: 'secondary' as const, text: `${days} days left`, urgent: false };
-    } else {
-      return { variant: 'outline' as const, text: `${days} days left`, urgent: false };
+    try {
+      await restoreMutation.mutateAsync({
+        trashId: id,
+        type: item.itemType,
+        itemId: item.fileId || item.folderId || ''
+      });
+      
+      toast({
+        title: "File restored",
+        description: `${item.name} has been restored successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Restore failed",
+        description: "Failed to restore the file. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const totalSize = trashedFiles.reduce((acc, file) => {
-    const size = parseFloat(file.size.split(' ')[0]);
-    return acc + size;
-  }, 0);
+  const permanentlyDelete = (id: string) => {
+    // TODO: Implement permanent delete when backend endpoint is available
+    toast({
+      title: "Delete permanently",
+      description: "Permanent delete functionality will be implemented when backend endpoint is available.",
+      variant: "destructive",
+    });
+  };
+
+  const emptyTrash = () => {
+    // TODO: Implement empty trash when backend endpoint is available
+    toast({
+      title: "Empty trash",
+      description: "Empty trash functionality will be implemented when backend endpoint is available.",
+      variant: "destructive",
+    });
+  };
+
+  if (trashError || analysisError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Error loading trash data</h3>
+          <p className="text-muted-foreground">Please try refreshing the page.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Trash Management</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Manage deleted files and handle permanent deletion
-          </p>
+          <p className="text-muted-foreground">Manage deleted files and folders</p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex-1 sm:flex-none"
-            onClick={() => {
-              setTrashedFiles([]);
-              toast({ title: "Files restored", description: "All files have been restored." });
-            }}
-          >
-            <Archive className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-            <span className="hidden sm:inline">Bulk Restore</span>
-            <span className="sm:hidden">Restore</span>
-          </Button>
-          <Button 
-            variant="destructive" 
-            size="sm" 
-            className="flex-1 sm:flex-none"
-            onClick={() => {
-              setTrashedFiles([]);
-              toast({ title: "Trash emptied", description: "All files permanently deleted.", variant: "destructive" });
-            }}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={emptyTrash}
+            className="text-destructive hover:text-destructive"
           >
             <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             <span className="hidden sm:inline">Empty Trash</span>
-            <span className="sm:hidden">Empty</span>
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-3 grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+      {/* Analytics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Deleted Files</CardTitle>
-            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">{trashedFiles.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Awaiting permanent deletion
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Storage Freed</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Files</CardTitle>
             <Archive className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">{totalSize.toFixed(1)} MB</div>
+            <div className="text-xl sm:text-2xl font-bold">
+              {isLoadingAnalysis ? <Loader2 className="h-6 w-6 animate-spin" /> : analysis?.totalItems || totalFiles}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Can be recovered
+              Files in trash
             </p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Freed Space</CardTitle>
+            <Archive className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl sm:text-2xl font-bold">
+              {isLoadingAnalysis ? <Loader2 className="h-6 w-6 animate-spin" /> : formatFileSize(analysis?.freedSpace || totalSize)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Space recovered
+            </p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium">Expiring Soon</CardTitle>
@@ -186,13 +176,15 @@ const AdminTrash = () => {
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-bold">
-              {trashedFiles.filter(f => f.retentionDays <= 7).length}
+              {isLoadingTrash ? <Loader2 className="h-6 w-6 animate-spin" /> : 
+                transformedItems.filter(f => f.retentionDays <= 7).length}
             </div>
             <p className="text-xs text-muted-foreground">
-              ≤ 7 days remaining
+              Files expiring in 7 days
             </p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium">Retention Period</CardTitle>
@@ -226,154 +218,168 @@ const AdminTrash = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Desktop Table View */}
-          <div className="hidden lg:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Size</TableHead>
-                  <TableHead>Deleted By</TableHead>
-                  <TableHead>Deleted Date</TableHead>
-                  <TableHead>Original Path</TableHead>
-                  <TableHead>Retention</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          {isLoadingTrash ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden lg:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Size</TableHead>
+                      <TableHead>Deleted By</TableHead>
+                      <TableHead>Deleted Date</TableHead>
+                      <TableHead>Original Path</TableHead>
+                      <TableHead>Retention</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredFiles.map((file) => {
+                      const retentionStatus = getRetentionStatus(file.retentionDays);
+                      return (
+                        <TableRow key={file.id}>
+                          <TableCell className="font-medium">{file.name}</TableCell>
+                          <TableCell>{file.type}</TableCell>
+                          <TableCell>{file.size}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={file.avatar} />
+                                <AvatarFallback>
+                                  {file.deletedBy.split(' ').map(n => n[0]).join('')}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{file.deletedBy}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{file.deletedDate}</TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {file.originalPath}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant={retentionStatus.variant}>
+                                {retentionStatus.text}
+                              </Badge>
+                              {retentionStatus.urgent && (
+                                <AlertTriangle className="w-4 h-4 text-destructive" />
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem 
+                                  onClick={() => restoreFile(file.id)}
+                                  disabled={restoreMutation.isPending}
+                                >
+                                  <RotateCcw className="w-4 h-4 mr-2" />
+                                  {restoreMutation.isPending ? 'Restoring...' : 'Restore File'}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => permanentlyDelete(file.id)}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete Permanently
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="lg:hidden space-y-3">
                 {filteredFiles.map((file) => {
                   const retentionStatus = getRetentionStatus(file.retentionDays);
                   return (
-                    <TableRow key={file.id}>
-                      <TableCell className="font-medium">{file.name}</TableCell>
-                      <TableCell>{file.type}</TableCell>
-                      <TableCell>{file.size}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={file.avatar} />
-                            <AvatarFallback>
-                              {file.deletedBy.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span>{file.deletedBy}</span>
+                    <Card key={file.id} className="p-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-medium text-sm truncate">{file.name}</h3>
+                            <div className="flex items-center space-x-1">
+                              <Badge variant={retentionStatus.variant} className="text-xs">
+                                {retentionStatus.text}
+                              </Badge>
+                              {retentionStatus.urgent && (
+                                <AlertTriangle className="w-3 h-3 text-destructive" />
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-3 mb-2">
+                            <span className="text-xs text-muted-foreground">{file.type}</span>
+                            <span className="text-xs text-muted-foreground">{file.size}</span>
+                          </div>
+
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Avatar className="h-5 w-5">
+                              <AvatarImage src={file.avatar} />
+                              <AvatarFallback className="text-xs">
+                                {file.deletedBy.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-xs text-muted-foreground">{file.deletedBy}</span>
+                            <span className="text-xs text-muted-foreground">•</span>
+                            <span className="text-xs text-muted-foreground">{file.deletedDate}</span>
+                          </div>
+
+                          <p className="text-xs text-muted-foreground truncate">
+                            Path: {file.originalPath}
+                          </p>
                         </div>
-                      </TableCell>
-                      <TableCell>{file.deletedDate}</TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {file.originalPath}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant={retentionStatus.variant}>
-                            {retentionStatus.text}
-                          </Badge>
-                          {retentionStatus.urgent && (
-                            <AlertTriangle className="w-4 h-4 text-destructive" />
-                          )}
+
+                        <div className="ml-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem 
+                                onClick={() => restoreFile(file.id)}
+                                disabled={restoreMutation.isPending}
+                              >
+                                <RotateCcw className="w-4 h-4 mr-2" />
+                                {restoreMutation.isPending ? 'Restoring...' : 'Restore File'}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => permanentlyDelete(file.id)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete Permanently
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => restoreFile(file.id)}>
-                              <RotateCcw className="w-4 h-4 mr-2" />
-                              Restore File
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => permanentlyDelete(file.id)}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete Permanently
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                    </Card>
                   );
                 })}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile Card View */}
-          <div className="lg:hidden space-y-3">
-            {filteredFiles.map((file) => {
-              const retentionStatus = getRetentionStatus(file.retentionDays);
-              return (
-                <Card key={file.id} className="p-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-medium text-sm truncate">{file.name}</h3>
-                        <div className="flex items-center space-x-1">
-                          <Badge variant={retentionStatus.variant} className="text-xs">
-                            {retentionStatus.text}
-                          </Badge>
-                          {retentionStatus.urgent && (
-                            <AlertTriangle className="w-3 h-3 text-destructive" />
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3 mb-2">
-                        <span className="text-xs text-muted-foreground">{file.type}</span>
-                        <span className="text-xs text-muted-foreground">{file.size}</span>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Avatar className="h-5 w-5">
-                          <AvatarImage src={file.avatar} />
-                          <AvatarFallback className="text-xs">
-                            {file.deletedBy.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs text-muted-foreground">{file.deletedBy}</span>
-                        <span className="text-xs text-muted-foreground">•</span>
-                        <span className="text-xs text-muted-foreground">{file.deletedDate}</span>
-                      </div>
-                      
-                      <p className="text-xs text-muted-foreground truncate">
-                        Path: {file.originalPath}
-                      </p>
-                    </div>
-                    
-                    <div className="ml-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => restoreFile(file.id)}>
-                            <RotateCcw className="w-4 h-4 mr-2" />
-                            Restore File
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-destructive"
-                            onClick={() => permanentlyDelete(file.id)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete Permanently
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

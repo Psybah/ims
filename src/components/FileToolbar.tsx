@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";        
 import { Upload, FolderPlus, Star } from "lucide-react";
 
 interface FileToolbarProps {
@@ -17,51 +17,47 @@ export function FileToolbar({
   disabled = false,
 }: FileToolbarProps) {
   return (
-    <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 lg:items-center">
-      <div className="flex space-x-2">
-        <Button
-          onClick={onUpload}
-          variant="default"
-          size="sm"
-          className="flex-1 sm:flex-none"
-          disabled={disabled}
-        >
-          <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-          <span className="text-xs sm:text-sm">Upload Files</span>
-        </Button>
-        <Button
-          onClick={onUploadFolder}
-          variant="outline"
-          size="sm"
-          className="flex-1 sm:flex-none"
-          disabled={disabled}
-        >
-          <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-          <span className="text-xs sm:text-sm">Upload Folder</span>
-        </Button>
-      </div>
-      <div className="flex space-x-2">
-        <Button
-          onClick={onNewFolder}
-          variant="outline"
-          size="sm"
-          className="flex-1 sm:flex-none"
-          disabled={disabled}
-        >
-          <FolderPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-          <span className="text-xs sm:text-sm">New Folder</span>
-        </Button>
-        <Button
-          onClick={onStarred}
-          variant="outline"
-          size="sm"
-          className="flex-1 sm:flex-none"
-          disabled={disabled}
-        >
-          <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-          <span className="text-xs sm:text-sm">Starred</span>
-        </Button>
-      </div>
+    <div className="w-full grid grid-cols-2 gap-2 sm:w-auto sm:flex sm:space-x-2 sm:justify-end">
+      <Button
+        onClick={onUpload}
+        variant="default"
+        size="sm"
+        className="w-full sm:w-auto"
+        disabled={disabled}
+      >
+        <Upload className="w-4 h-4 mr-2" />
+        <span className="text-sm">Upload Files</span>
+      </Button>
+      <Button
+        onClick={onUploadFolder}
+        variant="outline"
+        size="sm"
+        className="w-full sm:w-auto"
+        disabled={disabled}
+      >
+        <Upload className="w-4 h-4 mr-2" />
+        <span className="text-sm">Upload Folder</span>
+      </Button>
+      <Button
+        onClick={onNewFolder}
+        variant="outline"
+        size="sm"
+        className="w-full sm:w-auto"
+        disabled={disabled}
+      >
+        <FolderPlus className="w-4 h-4 mr-2" />
+        <span className="text-sm">New Folder</span>
+      </Button>
+      <Button
+        onClick={onStarred}
+        variant="outline"
+        size="sm"
+        className="w-full sm:w-auto"
+        disabled={disabled}
+      >
+        <Star className="w-4 h-4 mr-2" />
+        <span className="text-sm">Starred</span>
+      </Button>
     </div>
   );
 }

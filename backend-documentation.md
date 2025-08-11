@@ -13,6 +13,8 @@
   - [Get Users in Group](#get-users-in-group)
 - [User Management](#user-management)
   - [Get All Users](#get-all-users)
+  - [Admin Dashboard Analytics](#admin-dashboard-analytics)
+  - [Member Dashboard Analytics](#member-dashboard-analytics)
   - [Create Admin & Member Account](#create-admin--member-account)
 - [Files and Folders](#files-and-folders)
   - [Create Folder](#create-folder)
@@ -24,6 +26,10 @@
   - [Get File by ID](#get-file-by-id)
   - [Delete File](#delete-file)
   - [Upload Folders](#upload-folders)
+- [Trash Management](#trash-management)
+  - [Get All Trash](#get-all-trash)
+  - [Get Trash Analysis](#get-trash-analysis)
+  - [Restore Deleted Item](#restore-deleted-item)
 
 ---
 
@@ -35,8 +41,7 @@ Creates a new user account in the system.
 
 **Endpoint:** `POST /api/v1/auth/register`
 
-**Request Body:**
-```json
+**Request Body:**```json
 {
     "fullName": "Meghan O'Conner",
     "phoneNumber": "14-930-290-6636",
@@ -70,7 +75,7 @@ curl --location 'localhost:3004/api/v1/auth/register' \
       "createdAt": "2025-05-18T16:55:30.744Z",
       "updatedAt": "2025-05-18T16:55:30.744Z"
     },
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImI5OTljYWM3LTdiMjItNDI4MC1hNzk1LWJkYjBmODdhYWU4NyIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc0NzU4NzMzMCwiZXhwIjoxNzQ3NjczNzMwfQ.vPXLS-LKW2A8f-i2I2uVZYBChBZ0OTsBZFANZj_Wmt0"
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImI5OTljYWM3LTdiMjItNDI4MC1hNzk1LWJkYjBmODdhYWU4NyIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc0NzU4NzMzMCwiZXhwIjoxNzQ3Njc3NzMwfQ.vPXLS-LKW2A8f-i2I2uVZYBChBZ0OTsBZFANZj_Wmt0"
   },
   "message": "Account Created successful"
 }
@@ -406,6 +411,67 @@ curl --location 'https://api.yareyare.com/api/v1/users' \
         "updatedAt": "2025-05-21T14:36:48.143Z"
       }
     ]
+  }
+}
+```
+
+### Admin Dashboard Analytics
+
+Retrieves analytics data for the admin dashboard.
+
+**Endpoint:** `GET /api/v1/users/admin/dashboard`
+
+**Headers:**
+- `Authorization: Bearer <token>`
+
+**Example Request:**
+```bash
+curl --location --request GET 'https://api.yareyare.com/api/v1/users/admin/dashboard' \
+--header 'Authorization: Bearer <token>'
+```
+
+**Response (200 OK):**
+```json
+{
+  "status": "success",
+  "data": {
+    "totalUsers": 3,
+    "totalFiles": {
+      "totalFiles": 4,
+      "totalSize": 5015
+    }
+  }
+}
+```
+
+### Member Dashboard Analytics
+
+Retrieves analytics data for the member dashboard.
+
+**Endpoint:** `GET /api/v1/users/member/dashboard`
+
+**Headers:**
+- `Authorization: Bearer <token>`
+
+**Example Request:**
+```bash
+curl --location --request GET 'https://api.yareyare.com/api/v1/users/member/dashboard' \
+--header 'Authorization: Bearer <token>'
+```
+
+**Response (200 OK):**
+```json
+{
+  "status": "success",
+  "data": {
+    "totalFiles": 0,
+    "fileTypes": {
+      "images": 0,
+      "videos": 0,
+      "documents": 0,
+      "others": 0
+    },
+    "totalSize": 0
   }
 }
 ```
@@ -839,6 +905,156 @@ Endpoint for uploading multiple folders (batch operation).
 ```bash
 curl --location 'http://localhost:3004/api/v2/files/upload/folder' \
 --header 'Authorization: Bearer <token>'
+```
+
+---
+
+## Trash Management
+
+### Get All Trash
+
+Retrieves all deleted items from the trash.
+
+**Endpoint:** `GET /api/v1/trash`
+
+**Headers:**
+- `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{ 
+    "type": "FILE", // or FOLDER
+    "itemId": ""
+}
+```
+
+**Example Request:**
+```bash
+curl --location --request GET 'https://api.yareyare.com/api/v1/trash' \
+--header 'Authorization: Bearer <token>' \
+--data '{ 
+    "type": "FILE",
+    "itemId": ""
+}'
+```
+
+**Response (200 OK):**
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": "1322ef70-6780-4a17-a2f7-ca32824d5dc5",
+      "accountId": "266b9ef5-8b74-4d96-91c9-9a82dd32dea5",
+      "folderId": null,
+      "fileId": "1CDEv32Omg7jR-YperBLST2B7Bkqij7EE",
+      "deletedAt": "2025-07-07T16:49:22.904Z",
+      "originalPath": null,
+      "itemType": "FILE",
+      "retentionExpiresAt": null,
+      "deletedBy": {
+        "id": "266b9ef5-8b74-4d96-91c9-9a82dd32dea5",
+        "fullName": "Marta Boehm",
+        "email": "iammoses19@gmail.com",
+        "phoneNumber": null,
+        "role": "ADMIN",
+        "createdAt": "2025-07-07T16:36:13.370Z",
+        "updatedAt": "2025-07-07T16:36:13.370Z"
+      }
+    }
+  ]
+}
+```
+
+### Get Trash Analysis
+
+Retrieves analytics data for the trash.
+
+**Endpoint:** `GET /api/v1/trash/analysis`
+
+**Headers:**
+- `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{ 
+    "type": "FILE", // or FOLDER
+    "itemId": ""
+}
+```
+
+**Example Request:**
+```bash
+curl --location --request GET 'https://api.yareyare.com/api/v1/trash/analysis' \
+--header 'Authorization: Bearer <token>' \
+--data '{ 
+    "type": "FILE",
+    "itemId": ""
+}'
+```
+
+**Response (200 OK):**
+```json
+{
+  "status": "success",
+  "data": {
+    "totalItems": 1,
+    "freedSpace": 420
+  }
+}
+```
+
+### Restore Deleted Item
+
+Restores a deleted item from the trash.
+
+**Endpoint:** `PUT /api/v1/trash/restore/{trashId}`
+
+**Headers:**
+- `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{   
+    "type": "FILE",
+    "itemId": "{{fileIdOrFolderId}}"
+}
+```
+
+**Example Request:**
+```bash
+curl --location -g --request PUT 'https://api.yareyare.com/api/v1/trash/restore/{{trashId}}' \
+--header 'Authorization: Bearer <token>' \
+--data '{   
+    "type": "FILE",
+    "itemId": "{{fileIdOrFolderId}}"
+}'
+```
+
+**Response (200 OK):**
+```json
+{
+  "status": "success",
+  "data": {
+    "restoredItem": {
+      "id": "1CDEv32Omg7jR-YperBLST2B7Bkqij7EE",
+      "fileName": "error.ts",
+      "fileType": "video/mp2t",
+      "fileSize": 420,
+      "filePath": "/error.ts",
+      "encoding": "7bit",
+      "deleted": false,
+      "webContentLink": "https://drive.google.com/uc?id=1CDEv32Omg7jR-YperBLST2B7Bkqij7EE&export=download",
+      "webViewLink": "https://drive.google.com/file/d/1CDEv32Omg7jR-YperBLST2B7Bkqij7EE/view?usp=drivesdk",
+      "version": 1,
+      "metadata": null,
+      "folderId": null,
+      "accountId": "b734e0bf-306a-4ef0-90ef-9d57e044d68d",
+      "uploadedAt": "2025-07-07T16:36:41.030Z",
+      "updatedAt": "2025-07-24T02:56:49.187Z"
+    }
+  }
+}
 ```
 
 ---
