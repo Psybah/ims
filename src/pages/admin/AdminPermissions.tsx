@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiV1 } from "@/lib/api";
 import { useSecurityGroupsQuery, useUsersQuery } from "@/api/admin";
@@ -23,7 +23,7 @@ import { Folder, Plus, Users, Check } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PermissionsTable } from "@/components/admin/PermissionsTable";
 import { VSCodeFolderTree } from "@/components/admin/VSCodeFolderTree";
-import { AddPermissionModal } from "@/components/AddPermissionModal";
+import { AddPermissionModal, AddPermissionModalRef } from "@/components/AddPermissionModal";
 import { useSidebar } from "@/components/ui/sidebar";
 import {
   fetchFolderById,
@@ -227,6 +227,7 @@ export default function AdminPermissions() {
   const isLoading = usersLoading || groupsLoading;
 
   const { setOpen } = useSidebar();
+  const addPermissionModalRef = useRef<AddPermissionModalRef>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editPermission, setEditPermission] = useState<MockPermission | null>(
     null
@@ -248,16 +249,6 @@ export default function AdminPermissions() {
 
   // Flattened list for easy lookup
   const folderPath = getFolderPathById(mockFolders, "root") || [];
-  // Filter permissions for selected resource
-  const resourcePerms = permissions.filter((p) => p.resourceId === "");
-
-  // Convert MockPermission to Permission for the table component
-  const tablePermissions = resourcePerms.map((p) => ({
-    subjectType: p.subjectType,
-    subjectId: p.subjectId,
-    permissions: p.permissions,
-    inherited: p.inherited,
-  }));
 
   // Responsive sidebar toggle
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
@@ -287,8 +278,53 @@ export default function AdminPermissions() {
   const rootNodes: TreeNode[] = [...folders, ...files];
 
   const [selectedResourceId, setSelectedResourceId] = useState(
-    folders.length > 1 ? folders[0].id : ""
+    folders.length > 0 ? folders[0].id : "finance" // Default to "finance" from mock data
   );
+
+  // Get the selected resource name
+  const getResourceName = (resourceId: string): string => {
+    if (!resourceId) return "No selection";
+    
+    const findInTree = (nodes: TreeNode[]): string | null => {
+      for (const node of nodes) {
+        if (node.id === resourceId) return node.name;
+        if (node.children) {
+          const found = findInTree(node.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    
+    // Try rootNodes first, then mockFolders, then return a cleaned up version of the ID
+    let name = findInTree(rootNodes) || findInTree(mockFolders);
+    
+    if (!name) {
+      // If still not found, try to make a readable name from the ID
+      if (resourceId.includes('.')) {
+        // Looks like a filename
+        name = resourceId;
+      } else {
+        // Try to find by partial match or return a cleaned version
+        name = resourceId.replace(/[-_]/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
+      }
+    }
+    
+    return name || resourceId;
+  };
+
+  const selectedResourceName = getResourceName(selectedResourceId);
+
+  // Filter permissions for selected resource
+  const resourcePerms = permissions.filter((p) => p.resourceId === selectedResourceId);
+
+  // Convert MockPermission to Permission for the table component
+  const tablePermissions = resourcePerms.map((p) => ({
+    subjectType: p.subjectType,
+    subjectId: p.subjectId,
+    permissions: p.permissions,
+    inherited: p.inherited,
+  }));
 
   const getChildren = async (node: TreeNode) => {
     const result = await fetchFolderById(node.id);
@@ -298,8 +334,11 @@ export default function AdminPermissions() {
   };
 
   useEffect(() => {
-    console.log(selectedResourceId);
-  }, [selectedResourceId]);
+    // Update selected resource when data changes
+    if (folders.length > 0 && !selectedResourceId) {
+      setSelectedResourceId(folders[0].id);
+    }
+  }, [folders, selectedResourceId]);
 
   return (
     <div className="flex h-[80vh]">
@@ -353,13 +392,14 @@ export default function AdminPermissions() {
             />
           </div>
           <AddPermissionModal 
+            ref={addPermissionModalRef}
             resourceId={selectedResourceId}
-            resourceName={selectedResourceId || "selected item"}
+            resourceName={selectedResourceName || "selected item"}
             onPermissionAdd={(newPermission) => {
               setPermissions((prev) => [...prev, newPermission]);
               toast({
                 title: "Permission added",
-                description: "Permission has been successfully added.",
+                description: `Permission granted to "${selectedResourceName}".`,
               });
             }}
           />
@@ -370,7 +410,7 @@ export default function AdminPermissions() {
             title="No Permissions Yet"
             description="No users or groups have explicit permissions for this file or folder. Add a permission to get started."
             actionLabel="Add Permission"
-            onAction={() => {}}
+            onAction={() => addPermissionModalRef.current?.openModal()}
           />
         ) : (
           <PermissionsTable

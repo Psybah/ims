@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,7 +29,12 @@ interface AddPermissionModalProps {
   onPermissionAdd: (permission: any) => void;
 }
 
-export const AddPermissionModal = ({ resourceId, resourceName, onPermissionAdd }: AddPermissionModalProps) => {
+export interface AddPermissionModalRef {
+  openModal: () => void;
+}
+
+export const AddPermissionModal = forwardRef<AddPermissionModalRef, AddPermissionModalProps>(
+  ({ resourceId, resourceName, onPermissionAdd }, ref) => {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -60,6 +65,10 @@ export const AddPermissionModal = ({ resourceId, resourceName, onPermissionAdd }
     { value: "edit", label: "Edit" },
     { value: "delete", label: "Delete" },
   ];
+
+  useImperativeHandle(ref, () => ({
+    openModal: () => setOpen(true),
+  }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,9 +160,6 @@ export const AddPermissionModal = ({ resourceId, resourceName, onPermissionAdd }
                   {(formData.subjectType === 'user' ? users : securityGroups).map((item) => (
                     <SelectItem key={item.id} value={item.id}>
                       {item.name}
-                      {formData.subjectType === 'user' && (
-                        <span className="text-muted-foreground ml-2">({(item as any).email})</span>
-                      )}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -201,4 +207,4 @@ export const AddPermissionModal = ({ resourceId, resourceName, onPermissionAdd }
       </DialogContent>
     </Dialog>
   );
-};
+});
