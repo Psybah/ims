@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Loader2, UserPlus, UserMinus, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useUsersQuery } from '@/api/admin';
+import { useUsersQuery, useAddUsersToGroupMutation, useRemoveUserFromGroupMutation } from '@/api/admin';
 
 interface SecurityGroup {
   id: string;
@@ -51,6 +51,8 @@ export const ManageGroupUsersModal: React.FC<ManageGroupUsersModalProps> = ({
   
   const { toast } = useToast();
   const { data: allUsers = [], isLoading: usersLoading } = useUsersQuery();
+  const addUsersToGroupMutation = useAddUsersToGroupMutation();
+  const removeUserFromGroupMutation = useRemoveUserFromGroupMutation();
 
   // Get current member IDs
   const currentMemberIds = group?.members.map(member => member.accountId || member.id) || [];
@@ -97,17 +99,37 @@ export const ManageGroupUsersModal: React.FC<ManageGroupUsersModalProps> = ({
 
     setIsUpdating(true);
     try {
-      // TODO: Implement actual API calls for adding/removing users
       if (activeTab === 'add') {
         // Add users to group
-        console.log('Adding users to group:', selectedUserIds);
+        await addUsersToGroupMutation.mutateAsync({ 
+          groupId: group.id, 
+          userIds: selectedUserIds 
+        });
         toast({
           title: "Users Added",
           description: `Successfully added ${selectedUserIds.length} user(s) to "${group.name}".`,
         });
       } else {
-        // Remove users from group
-        console.log('Removing users from group:', selectedUserIds);
+        // Remove users from group (one by one since API only supports single user removal)
+        for (const userId of selectedUserIds) {
+          try {
+            await removeUserFromGroupMutation.mutateAsync({ 
+              groupId: group.id, 
+              userId: userId 
+            });
+          } catch (error: any) {
+            // If remove endpoint doesn't exist, show a warning
+            if (error.message?.includes('not yet available')) {
+              toast({
+                title: "Feature Not Available",
+                description: "Remove user functionality is not yet implemented in the backend.",
+                variant: "destructive",
+              });
+              return;
+            }
+            throw error;
+          }
+        }
         toast({
           title: "Users Removed",
           description: `Successfully removed ${selectedUserIds.length} user(s) from "${group.name}".`,

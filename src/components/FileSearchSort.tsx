@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ArrowUpDown, Search } from 'lucide-react';
+import { ArrowUpDown, Search, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface FileSearchSortProps {
@@ -14,9 +14,10 @@ interface FileSearchSortProps {
   sortBy: 'name' | 'modified' | 'size';
   sortOrder: 'asc' | 'desc';
   onSort: (sortBy: 'name' | 'modified' | 'size') => void;
+  onStarred: () => void;
 }
 
-export function FileSearchSort({ searchTerm, onSearch, sortBy, sortOrder, onSort }: FileSearchSortProps) {
+export function FileSearchSort({ searchTerm, onSearch, sortBy, sortOrder, onSort, onStarred }: FileSearchSortProps) {
   return (
     <div className="flex items-center justify-between space-x-2 sm:space-x-4">
       <div className="flex items-center space-x-2 sm:space-x-4 flex-1">
@@ -31,6 +32,16 @@ export function FileSearchSort({ searchTerm, onSearch, sortBy, sortOrder, onSort
         </div>
       </div>
       <div className="flex items-center space-x-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onStarred}
+          className="text-xs sm:text-sm"
+        >
+          <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Starred</span>
+        </Button>
+        
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="text-xs sm:text-sm">

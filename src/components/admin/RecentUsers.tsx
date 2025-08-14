@@ -95,7 +95,7 @@ export const RecentUsers: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="space-y-3 sm:space-y-4 max-h-80 overflow-y-auto pr-2">
+        <div className="space-y-3 sm:space-y-4 max-h-80 overflow-y-auto pr-2 thin-scrollbar">
           {recentUsers.length === 0 ? (
             <div className="text-center text-muted-foreground py-4">
               No users found

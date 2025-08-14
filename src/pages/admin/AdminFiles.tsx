@@ -312,7 +312,6 @@ const AdminFiles = () => {
           onUpload={handleUpload}
           onUploadFolder={handleUploadFolder}
           onNewFolder={handleNewFolder}      
-          onStarred={handleStarred}
         />
       </div>
 
@@ -328,6 +327,7 @@ const AdminFiles = () => {
         sortBy={sortBy}
         sortOrder={sortOrder}
         onSort={handleSort}
+        onStarred={handleStarred}
       />
       {loadingRoot || loadingFolder ? (      
         <div>Loading...</div>

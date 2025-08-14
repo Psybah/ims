@@ -4,7 +4,7 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { LogOut, Bell } from 'lucide-react';
+import { LogOut, Bell, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardLayoutProps {
@@ -40,27 +40,19 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
                 {/* User Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 sm:h-10 w-auto px-2 sm:px-3">
+                    <Button variant="ghost" className="relative h-8 sm:h-10 w-auto px-2 sm:px-3 flex items-center space-x-1">
                       <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
                         <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm">
-                          {user?.avatar || user?.name?.substring(0, 2).toUpperCase()}
+                          {user?.fullName?.substring(0, 2).toUpperCase() || user?.email?.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      {/* Hide email text on desktop/tablet, only show on mobile */}
-                      <div className="ml-1 sm:ml-2 text-left block sm:hidden md:truncate md:max-w-[200px]">
-                        <p className="text-sm font-medium leading-none">{user?.name}</p>
-                      </div>
-                      <div className="hidden sm:block text-left">
-                        <p className="text-xs text-muted-foreground leading-none mt-1">
-                          {user?.email}
-                        </p>
-                      </div>
+                      <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{user?.name}</p>
+                        <p className="text-sm font-medium leading-none">{user?.fullName}</p>
                         <p className="text-xs leading-none text-muted-foreground">
                           {user?.email}
                         </p>
@@ -82,7 +74,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
 
           {/* Main Content */}
           <main className="flex-1 p-3 sm:p-6">
-            {children}
+            <div className="max-w-7xl mx-auto">
+              {children}
+            </div>
           </main>
         </div>
       </div>

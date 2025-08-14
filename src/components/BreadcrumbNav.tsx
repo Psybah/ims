@@ -9,18 +9,18 @@ interface BreadcrumbNavProps {
 
 export function BreadcrumbNav({ items, onNavigate }: BreadcrumbNavProps) {
   return (
-    <nav className="flex items-center space-x-1 text-sm text-muted-foreground">
+    <nav className="flex items-center space-x-1 text-sm mb-4">
       {items.map((item, index) => (
         <div key={item.id || 'root'} className="flex items-center">
-          {index > 0 && <ChevronRight className="h-4 w-4 mx-1" />}
+          {index > 0 && <ChevronRight className="h-4 w-4 mx-1 text-muted-foreground" />}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onNavigate(item.id === null ? '/' : item.id)}
-            className={`h-auto p-1 hover:bg-muted ${
+            className={`h-auto p-1 font-medium ${
               index === items.length - 1 
-                ? 'text-foreground font-medium' 
-                : 'text-muted-foreground'
+                ? 'text-primary hover:text-primary/80' 
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {item.name}

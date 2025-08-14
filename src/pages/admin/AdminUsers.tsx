@@ -128,11 +128,8 @@ const AdminUsers = () => {
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    // The backend API does not provide a 'status' field for users, only 'role'.
-    // Filtering by status will not work as expected with the current backend.
-    const matchesStatus = true; // Assuming all users are 'Active' from backend perspective
     const matchesRole = !filters.role?.length || filters.role.includes(user.role);
-    return matchesSearch && matchesStatus && matchesRole;
+    return matchesSearch && matchesRole;
   });
 
   const getRoleVariant = (role: string): "default" | "destructive" | "secondary" | "outline" => {
@@ -145,6 +142,19 @@ const AdminUsers = () => {
         return 'secondary';
       default:
         return 'outline';
+    }
+  };
+
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'SUPER_ADMIN':
+        return 'Super Admin';
+      case 'ADMIN':
+        return 'Admin';
+      case 'MEMBER':
+        return 'Member';
+      default:
+        return role;
     }
   };
 
@@ -275,12 +285,25 @@ const AdminUsers = () => {
               icon={Users}
               title="No users found"
               description={
-                searchTerm 
-                  ? "No users match your search criteria. Try adjusting your search terms."
+                searchTerm || (filters.role?.length) 
+                  ? (() => {
+                      const hasSearch = !!searchTerm;
+                      const hasRoleFilter = !!(filters.role?.length);
+                      
+                      if (hasSearch && hasRoleFilter) {
+                        return `No users match your search "${searchTerm}" with the selected role filters. Try adjusting your search terms or role filters.`;
+                      } else if (hasSearch) {
+                        return `No users match your search "${searchTerm}". Try adjusting your search terms.`;
+                      } else if (hasRoleFilter) {
+                        const roleDisplayNames = filters.role?.map(role => getRoleDisplayName(role)).join(', ');
+                        return `No users found with the selected role filters (${roleDisplayNames}). Try adjusting your role filters.`;
+                      }
+                      return "No users match your criteria.";
+                    })()
                   : "There are no users in the system yet. Add your first user to get started."
               }
-              actionLabel={!searchTerm ? "Add User" : undefined}
-              onAction={!searchTerm ? () => {
+              actionLabel={!searchTerm && !filters.role?.length ? "Add User" : undefined}
+              onAction={!searchTerm && !filters.role?.length ? () => {
                 // AddUserModal is embedded in the header, so we'll disable this action
                 // Users can click the Add User button in the header instead
               } : undefined}

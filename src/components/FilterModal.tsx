@@ -38,6 +38,19 @@ export const FilterModal = ({ type, onFilterApply, children }: FilterModalProps)
   const [open, setOpen] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({});
 
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'SUPER_ADMIN':
+        return 'Super Admin';
+      case 'ADMIN':
+        return 'Admin';
+      case 'MEMBER':
+        return 'Member';
+      default:
+        return role;
+    }
+  };
+
   const handleApplyFilters = () => {
     onFilterApply(filters);
     setOpen(false);
@@ -52,36 +65,9 @@ export const FilterModal = ({ type, onFilterApply, children }: FilterModalProps)
   const renderUserFilters = () => (
     <>
       <div className="space-y-3">
-        <Label>Status</Label>
-        <div className="space-y-2">
-          {['Active', 'Inactive', 'Suspended'].map((status) => (
-            <div key={status} className="flex items-center space-x-2">
-              <Checkbox
-                id={`status-${status}`}
-                checked={filters.status?.includes(status) || false}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    setFilters(prev => ({
-                      ...prev,
-                      status: [...(prev.status || []), status]
-                    }));
-                  } else {
-                    setFilters(prev => ({
-                      ...prev,
-                      status: prev.status?.filter(s => s !== status) || []
-                    }));
-                  }
-                }}
-              />
-              <Label htmlFor={`status-${status}`}>{status}</Label>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="space-y-3">
         <Label>Role</Label>
         <div className="space-y-2">
-          {['Admin', 'Moderator', 'User'].map((role) => (
+          {['SUPER_ADMIN', 'ADMIN', 'MEMBER'].map((role) => (
             <div key={role} className="flex items-center space-x-2">
               <Checkbox
                 id={`role-${role}`}
@@ -100,7 +86,7 @@ export const FilterModal = ({ type, onFilterApply, children }: FilterModalProps)
                   }
                 }}
               />
-              <Label htmlFor={`role-${role}`}>{role}</Label>
+              <Label htmlFor={`role-${role}`}>{getRoleDisplayName(role)}</Label>
             </div>
           ))}
         </div>

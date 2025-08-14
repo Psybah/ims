@@ -10,13 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Folder, Plus, Users, Check } from "lucide-react";
 
@@ -341,7 +334,8 @@ export default function AdminPermissions() {
   }, [folders, selectedResourceId]);
 
   return (
-    <div className="flex h-[80vh]">
+    <div className="max-w-7xl mx-auto">
+      <div className="flex h-[80vh]">
       {/* VSCode-style Folder/File Tree Sidebar */}
       <div
         className={`w-72 border-r p-4 bg-muted/10 overflow-y-auto hidden md:block`}
@@ -507,6 +501,7 @@ export default function AdminPermissions() {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

@@ -70,6 +70,19 @@ export const getHealthStatus = async () => {
   return data;
 };
 
+export const addUsersToGroup = async (groupId: string, userIds: string[]) => {
+  const { data } = await apiV1.post(`/security-group/${groupId}/add-user`, { userIds });
+  return data;
+};
+
+// Note: Remove user endpoint is not documented in backend-documentation.md
+// This is a placeholder for future implementation
+export const removeUserFromGroup = async (groupId: string, userId: string) => {
+  // TODO: Implement when backend endpoint becomes available
+  console.warn('Remove user from group endpoint not yet implemented in backend');
+  throw new Error('Remove user from group functionality not yet available');
+};
+
 // React Query Hooks
 export const useAdminDashboardQuery = () => {
   return useQuery({
@@ -123,5 +136,31 @@ export const useHealthStatusQuery = () => {
     queryKey: ['health-status'],
     queryFn: getHealthStatus,
     refetchInterval: 30000, // Check every 30 seconds
+  });
+};
+
+export const useAddUsersToGroupMutation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ groupId, userIds }: { groupId: string; userIds: string[] }) => 
+      addUsersToGroup(groupId, userIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['security-groups'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+};
+
+export const useRemoveUserFromGroupMutation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ groupId, userId }: { groupId: string; userId: string }) => 
+      removeUserFromGroup(groupId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['security-groups'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
   });
 }; 
